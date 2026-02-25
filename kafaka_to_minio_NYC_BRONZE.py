@@ -67,7 +67,10 @@ df = spark.read \
 # 4. המרת value מ־bytes ל־string והחלת סכימה
 parsed_df = df.selectExpr("CAST(value AS STRING) as json_str") \
               .select(from_json(col("json_str"), schema).alias("data")) \
-              .select("data.*")
+              .select("data.*")\
+              .cache()
+
+parsed_df = parsed_df.dropDuplicates(["summons_number"])
 
 # 5. Sanity Check – מינימום, מקסימום תאריך וספירת רשומות
 validation_df = parsed_df.agg(
@@ -92,4 +95,7 @@ if num_duplicates > 0:
 parsed_df.write.mode("overwrite").parquet("s3a://spark/nyc_parking_raw.parquet")
 # output_path = "s3a://spark/nyc_parking_raw.parquet"
 # 7️⃣ עצירת Spark
+
+parsed_df.unpersist()
+
 spark.stop()
