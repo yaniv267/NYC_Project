@@ -1,10 +1,8 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, from_json
-from pyspark.sql.types import StructType, StructField, StringType ,IntegerType
+from pyspark.sql.functions import from_json, col, max as spark_max, min as spark_min, count
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 
-
-
-# 1. יצירת Session עם הגדרות Kafka ו-MinIO
+# 1. יצירת Spark Session
 spark = SparkSession.builder \
     .appName("NYC_Streaming_to_MinIO") \
     .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.4.0,org.apache.hadoop:hadoop-aws:3.3.4") \
@@ -58,25 +56,40 @@ schema = StructType([
     StructField("feet_from_curb", IntegerType(), True)
 ])
 
-# 2. קריאת Stream מ-Kafka
-raw_stream_df = spark.readStream \
+# 3. קריאה מקפקא (Batch) – או אם יש לך קובץ JSON, החלף כאן
+df = spark.read \
     .format("kafka") \
     .option("kafka.bootstrap.servers", "course-kafka:9093") \
     .option("subscribe", "nyc_parking_data_last_date") \
     .option("startingOffsets", "earliest") \
     .load()
 
-# 3. המרת הנתונים מפורמט Binary לטקסט
-streaming_df = raw_stream_df.selectExpr("CAST(value AS STRING)")
+# 4. המרת value מ־bytes ל־string והחלת סכימה
+parsed_df = df.selectExpr("CAST(value AS STRING) as json_str") \
+              .select(from_json(col("json_str"), schema).alias("data")) \
+              .select("data.*")
 
-# 4. כתיבת הנתונים ל-MinIO בפורמט Parquet
-# שימוש ב-Checkpoint חיוני ל-Streaming כדי לעקוב אחרי ההתקדמות
-query = streaming_df.writeStream \
-    .format("parquet") \
-    .option("path", "s3a://spark/nyc_parking_streaming.parquet") \
-    .option("checkpointLocation", "s3a://spark/checkpoints/nyc_parking") \
-    .outputMode("append") \
-    .start()
+# 5. Sanity Check – מינימום, מקסימום תאריך וספירת רשומות
+validation_df = parsed_df.agg(
+    spark_min(col("issue_date")).alias("Min_Date"),
+    spark_max(col("issue_date")).alias("Max_Date"),
+    count("*").alias("Total_Count")
+)
 
-print("🚀 ה-Streaming התחיל! הנתונים נכתבים ל-MinIO...")
-# query.awaitTermination()
+# הצגת Sanity Check
+validation_df.show(truncate=False)
+
+# 6️⃣ בדיקת כפילויות לפי summons_number
+duplicates_df = parsed_df.groupBy("summons_number").count().filter(col("count") > 1)
+
+num_duplicates = duplicates_df.count()
+print(f"\n⚠ סה\"כ כפילויות ב-summons_number: {num_duplicates}")
+
+if num_duplicates > 0:
+    print("📌 דוגמאות לכפילויות:")
+    duplicates_df.show(10, truncate=False)  # מציג 10 דוגמאות בלבד
+
+parsed_df.write.mode("overwrite").parquet("s3a://spark/nyc_parking_raw.parquet")
+# output_path = "s3a://spark/nyc_parking_raw.parquet"
+# 7️⃣ עצירת Spark
+spark.stop()

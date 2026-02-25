@@ -13,7 +13,7 @@ s3_path = "s3a://spark/data/dims/"
 # =========================
 spark = SparkSession.builder \
     .appName("NYC_Address_Join") \
-    .config("spark.driver.memory", "8g") \
+    .config("spark.driver.memory", "12g") \
     .config("spark.executor.memory", "4g") \
     .config("spark.jars.packages",
      "org.apache.hadoop:hadoop-aws:3.3.4,"
@@ -77,11 +77,8 @@ if spark_dfs:
     
     # הצגת 5 שורות לדוגמה
     full_spark_df.show(5)
-# המרה של עמודות התאריך למחרוזת כדי למנוע בעיות בכתיבה
 for col_name in ['CREATED', 'MODIFIED']:
     full_spark_df = full_spark_df.withColumn(col_name, full_spark_df[col_name].cast("string"))
-    # שמירה ל-S3 כ-Parquet
-    full_spark_df.repartition(50).write.mode("overwrite").parquet(s3_path + "dim_address")
-    print("Saved to S3:", s3_path + "dim_address/")
-else:
-    print("No data to process.")
+
+full_spark_df.repartition(50).write.mode("overwrite").parquet(s3_path + "dim_address")
+print("Saved to S3:", s3_path + "dim_address/")

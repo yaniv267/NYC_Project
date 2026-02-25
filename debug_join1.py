@@ -38,6 +38,18 @@ print("Unique Counties in Parking Data:")
 spark.read.parquet("s3a://spark/nyc_parking_raw.parquet").select("violation_county").distinct().show()
 # df_kafka_unique.show(50)
 
+# דגימה מנתוני הכתובות (Address Points) - Bronze Layer
+print("Addresses Raw Sample:")
+spark.read.parquet("s3a://spark/bronze/nyc_addresses_parquet") \
+    .select("full_street_name", "house_number", "boroughcode") \
+    .show(200)
+
+# דגימה מנתוני החניה (Kafka/Parking) - Bronze Layer
+print("Parking Raw Sample:")
+spark.read.parquet("s3a://spark/nyc_parking_raw.parquet") \
+    .select("street_name", "house_number", "violation_county") \
+    .show(100)
+
 # # 4. Display Results with English Headers
 # print("\n" + "="*50)
 # print("DATA SUMMARY")
