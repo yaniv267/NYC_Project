@@ -36,7 +36,6 @@ services:
     depends_on:
       - course-kafka
 
-
   minio:
         container_name: minio
         image: minio/minio:RELEASE.2022-11-08T05-27-07Z
@@ -44,6 +43,9 @@ services:
         ports:
             - "9001:9000"
             - "9002:9001"
+    # הוסף את החלק הזה:
+        volumes:
+          - ./minio_storage:/data
   dev_env:
         container_name: dev_env
         image: ofrir119/developer_env:spark340_ssh

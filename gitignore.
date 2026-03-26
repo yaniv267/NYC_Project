@@ -1,0 +1,4 @@
+__pycache__/
+minio_storage/
+.venv/
+*.pyc
