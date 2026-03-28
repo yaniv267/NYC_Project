@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType
+from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, ArrayType
 from nyc_schema import parking_schema
 
 # 1. הקמת ה-Spark Session עם חבילות קפקא ו-MinIO

@@ -1,4 +1,4 @@
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType , DoubleType, ArrayType, IntegerType
 
 
 parking_schema = StructType([
@@ -30,4 +30,31 @@ address_schema = StructType([
     StructField("borough_code", StringType(), True),
     StructField("longitude", DoubleType(), True),
     StructField("latitude", DoubleType(), True)
+])
+
+parking_violation_codes_schema = StructType([
+    StructField("violation_code", StringType(), True),
+    StructField("violation_description", StringType(), True),
+    StructField("manhattan_96th_st_below", DoubleType(), True),
+    StructField("all_other_areas", DoubleType(), True)
+])
+
+weather_bronze_schema = StructType([
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("timezone", StringType(), True),
+    StructField("hourly", StructType([
+        StructField("time", ArrayType(StringType()), True),
+        StructField("temperature_2m", ArrayType(DoubleType()), True),
+        StructField("precipitation", ArrayType(DoubleType()), True),
+        StructField("snowfall", ArrayType(DoubleType()), True)
+    ]), True)
+])
+
+
+weather_silver_schema = StructType([
+    StructField("weather_hour", StringType(), False), # המפתח ל-Join (למשל 2026-03-28 14:00)
+    StructField("temp", DoubleType(), True),
+    StructField("rain", DoubleType(), True),
+    StructField("snow", DoubleType(), True)
 ])
