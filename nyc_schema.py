@@ -1,4 +1,4 @@
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType , DoubleType, ArrayType, IntegerType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType, ArrayType, FloatType
 
 
 parking_schema = StructType([
@@ -44,10 +44,10 @@ weather_bronze_schema = StructType([
     StructField("longitude", DoubleType(), True),
     StructField("timezone", StringType(), True),
     StructField("hourly", StructType([
-        StructField("time", ArrayType(StringType()), True),
-        StructField("temperature_2m", ArrayType(DoubleType()), True),
-        StructField("precipitation", ArrayType(DoubleType()), True),
-        StructField("snowfall", ArrayType(DoubleType()), True)
+    StructField("time", ArrayType(StringType()), True),
+    StructField("temperature_2m", ArrayType(DoubleType()), True),
+    StructField("precipitation", ArrayType(DoubleType()), True),
+    StructField("snowfall", ArrayType(DoubleType()), True)
     ]), True)
 ])
 
@@ -59,7 +59,7 @@ weather_silver_schema = StructType([
     StructField("snow", DoubleType(), True)
 ])
 
-nyc_traffic_schema = StructType([
+traffic_bronze_schema = StructType([
     StructField("id", StringType(), True),
     StructField("speed", StringType(), True),
     StructField("travel_time", StringType(), True),
@@ -74,6 +74,20 @@ nyc_traffic_schema = StructType([
     StructField("borough", StringType(), True),
     StructField("link_name", StringType(), True),
     StructField("ingested_at", StringType(), True)
+])
+
+traffic_silver_schema = StructType([
+    StructField("id", StringType(), True),
+    StructField("speed", FloatType(), True),           # הפך למספר עשרוני
+    StructField("travel_time", IntegerType(), True),   # הפך למספר שלם
+    StructField("status", StringType(), True),
+    StructField("event_time", TimestampType(), True),  # זמן האירוע המקורי (נקי)
+    StructField("link_id", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("link_name", StringType(), True),
+    StructField("latitude", DoubleType(), True),       # חולץ החוצה
+    StructField("longitude", DoubleType(), True),      # חולץ החוצה
+    StructField("ingestion_time", TimestampType(), True) # מתי נכנס למערכת שלנו
 ])
 
 location_schema = StructType([

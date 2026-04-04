@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, IntegerType, ArrayType
-from nyc_schema import nyc_traffic_schema
+from nyc_schema import traffic_bronze_schema
 
 spark = SparkSession.builder \
 .appName("NYC Traffic Bronze Ingestion") \
@@ -32,7 +32,7 @@ df_raw = spark.read \
 df_json = df_raw.selectExpr("CAST(value AS STRING) as json_str")
 
 df_parsed = df_json.select(
-    from_json(col("json_str"), nyc_traffic_schema).alias("data")
+    from_json(col("json_str"), traffic_bronze_schema).alias("data")
 ).select("data.*")
 
 
