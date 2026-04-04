@@ -97,7 +97,7 @@ location_schema = StructType([
 ])
 
 
-nyc_crashes_schema = StructType([
+crashes_bronze_schema = StructType([
     StructField("crash_date", StringType(), True),
     StructField("crash_time", StringType(), True),
     StructField("borough", StringType(), True),
@@ -121,4 +121,20 @@ nyc_crashes_schema = StructType([
     StructField("vehicle_type_code1", StringType(), True),
     StructField("vehicle_type_code2", StringType(), True),
     StructField("ingested_at", StringType(), True)
+])
+
+crashes_silver_schema = StructType([
+    StructField("collision_id", StringType(), True),
+    StructField("crash_timestamp", TimestampType(), True), # איחוד של תאריך ושעה
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("on_street_name", StringType(), True),
+    StructField("total_injured", IntegerType(), True),
+    StructField("total_killed", IntegerType(), True),
+    StructField("pedestrians_injured", IntegerType(), True),
+    StructField("cyclist_injured", IntegerType(), True),
+    StructField("motorist_injured", IntegerType(), True),
+    StructField("contributing_factor", StringType(), True),
+    StructField("vehicle_type", StringType(), True),
+    StructField("ingestion_time", TimestampType(), True)
 ])
