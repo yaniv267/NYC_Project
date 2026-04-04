@@ -1,4 +1,8 @@
-__pycache__/
-minio_storage/
+
 .venv/
-*.pyc
+__pycache__/
+*.parquet
+_checkpoints/
+spark-warehouse/
+*.log
+.DS_Store

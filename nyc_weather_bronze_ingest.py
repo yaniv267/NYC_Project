@@ -28,12 +28,12 @@ def ingest_weather_bronze():
     print(f"📡 Requesting raw history from Open-Meteo...")
 
     try:
-        # 1. שליפת הנתונים
+ 
         response = requests.get(url)
         response.raise_for_status()
         raw_data = response.json()
 
-        # 2. הצגת דגימה מהנתונים (השורה שביקשת)
+    
         print("\n🔍 --- RAW DATA PREVIEW (First 5 hours) ---")
         times = raw_data['hourly']['time'][:5]
         temps = raw_data['hourly']['temperature_2m'][:5]
@@ -42,10 +42,10 @@ def ingest_weather_bronze():
             print(f"Time: {t} | Temp: {temp}°C")
         print("-------------------------------------------\n")
 
-        # 3. שמירה ל-MinIO
+  
         s3 = boto3.client('s3', **MINIO_CONF)
         
-        # וודא באקט קיים
+      
         try:
             s3.head_bucket(Bucket=BUCKET_NAME)
         except:

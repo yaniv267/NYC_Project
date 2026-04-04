@@ -58,3 +58,53 @@ weather_silver_schema = StructType([
     StructField("rain", DoubleType(), True),
     StructField("snow", DoubleType(), True)
 ])
+
+nyc_traffic_schema = StructType([
+    StructField("id", StringType(), True),
+    StructField("speed", StringType(), True),
+    StructField("travel_time", StringType(), True),
+    StructField("status", StringType(), True),
+    StructField("data_as_of", StringType(), True),
+    StructField("link_id", StringType(), True),
+    StructField("link_points", StringType(), True),
+    StructField("encoded_poly_line", StringType(), True),
+    StructField("encoded_poly_line_lvls", StringType(), True),
+    StructField("owner", StringType(), True),
+    StructField("transcom_id", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("link_name", StringType(), True),
+    StructField("ingested_at", StringType(), True)
+])
+
+location_schema = StructType([
+    StructField("latitude", StringType(), True),
+    StructField("longitude", StringType(), True),
+    StructField("human_address", StringType(), True)
+])
+
+
+nyc_crashes_schema = StructType([
+    StructField("crash_date", StringType(), True),
+    StructField("crash_time", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("zip_code", StringType(), True),
+    StructField("latitude", StringType(), True),
+    StructField("longitude", StringType(), True),
+    StructField("location", location_schema, True), # שדה מקונן (Nested)
+    StructField("on_street_name", StringType(), True),
+    StructField("off_street_name", StringType(), True),
+    StructField("number_of_persons_injured", StringType(), True),
+    StructField("number_of_persons_killed", StringType(), True),
+    StructField("number_of_pedestrians_injured", StringType(), True),
+    StructField("number_of_pedestrians_killed", StringType(), True),
+    StructField("number_of_cyclist_injured", StringType(), True),
+    StructField("number_of_cyclist_killed", StringType(), True),
+    StructField("number_of_motorist_injured", StringType(), True),
+    StructField("number_of_motorist_killed", StringType(), True),
+    StructField("contributing_factor_vehicle_1", StringType(), True),
+    StructField("contributing_factor_vehicle_2", StringType(), True),
+    StructField("collision_id", StringType(), True),
+    StructField("vehicle_type_code1", StringType(), True),
+    StructField("vehicle_type_code2", StringType(), True),
+    StructField("ingested_at", StringType(), True)
+])
