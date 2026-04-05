@@ -119,7 +119,7 @@ db_props = {"user": "user", "password": "password", "driver": "org.postgresql.Dr
 
 try:
     print("🚀 Saving Master Gold Table with Time to Postgres...")
-    master_gold.write.jdbc(url=jdbc_url, table="bot_serving_table", mode="overwrite", properties=db_props)
+    master_gold.write.jdbc(url=jdbc_url, table="gold_traffic_safety_stats", mode="overwrite", properties=db_props)
     print("✅ Export Success! Time and Report Count included.")
 except Exception as e:
     print(f"❌ DB Export failed: {e}")

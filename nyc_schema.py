@@ -1,7 +1,8 @@
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType, ArrayType, FloatType
+
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType
 
 
-parking_schema = StructType([
+bronze_parking_schema = StructType([
     StructField("summons_number", StringType(), True),
     StructField("plate_id", StringType(), True),
     StructField("registration_state", StringType(), True),
@@ -21,6 +22,28 @@ parking_schema = StructType([
     StructField("vehicle_year", IntegerType(), True),
     StructField("violation_description", StringType(), True),
     StructField("fiscal_year", IntegerType(), True)
+])
+
+silver_parking_schema = StructType([
+    StructField("summons_number", LongType(), True),       # מספר דוח - כעת כמספר ארוך
+    StructField("plate_id", StringType(), True),           # לוחית רישוי
+    StructField("registration_state", StringType(), True), # מדינה (NY, NJ וכו')
+    StructField("issue_date", DateType(), True),           # תאריך - כעת כטיפוס Date אמיתי
+    StructField("violation_code", IntegerType(), True),    # קוד עבירה - כמספר שלם
+    StructField("violation_description", StringType(), True), # תיאור (קריטי למצלמות)
+    StructField("vehicle_body_type", StringType(), True),  # סוג רכב
+    StructField("vehicle_make", StringType(), True),       # יצרן רכב
+    StructField("street_name", StringType(), True),        # שם הרחוב (קריטי לבוט)
+    StructField("house_number", StringType(), True),       # מספר בית
+    StructField("violation_county", StringType(), True),   # מחוז (NY, BX, QN וכו')
+    StructField("violation_time", StringType(), True)      # זמן העבירה
+])
+
+gold_camera_violation_schema = StructType([
+    StructField("street_name", StringType(), False),
+    StructField("violation_description", StringType(), True),
+    StructField("tickets_count", LongType(), False),
+    StructField("last_updated", TimestampType(), True)
 ])
 
 address_schema = StructType([
