@@ -71,7 +71,7 @@ spark = SparkSession.builder \
     .getOrCreate()
 
 # 1. קריאה מה-Bronze (JSON גולמי)
-df_raw = spark.read.json("s3a://spark/reference/violation_codes.json")
+df_raw = spark.read.json("s3a://spark/bronze/violation_codes.json")
 
 # 2. עיבוד והתאמה לסכימה (שינוי שמות וסוגי נתונים)
 df_silver = df_raw.select(

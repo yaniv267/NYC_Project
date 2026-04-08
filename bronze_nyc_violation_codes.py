@@ -73,7 +73,7 @@ def ingest():
     
     s3.put_object(
         Bucket="spark",
-        Key="reference/violation_codes.json",
+        Key="bronze/violation_codes.json",
         Body=json.dumps(data),
         ContentType='application/json'
     )
