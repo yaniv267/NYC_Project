@@ -34,8 +34,8 @@ df_parsed = df_json.select(
 ).select("data.*")
 
 
-minio_endpoint = "s3a://spark/bronze/nyc_parking/"
-checkpoint_path = "s3a://spark/bronze/nyc_parking/_checkpoints/"
+minio_endpoint = "s3a://spark/bronze/nyc_parking_violation/"
+checkpoint_path = "s3a://spark/bronze/nyc_parking_violation/_checkpoints/"
 
 query = df_parsed.writeStream \
     .format("parquet") \

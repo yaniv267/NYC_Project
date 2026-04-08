@@ -39,14 +39,36 @@ silver_parking_schema = StructType([
     StructField("violation_time", StringType(), True)      # זמן העבירה
 ])
 
+gold_parking_violation_schema = StructType([
+    # מפתח העיר: רחוב וקוד עבירה
+    StructField("street_name", StringType(), False),
+    StructField("violation_code", IntegerType(), False),
+    
+    # תיאור מילולי (מהמילון שיצרנו ב-Silver Reference)
+    StructField("violation_description", StringType(), True),
+    
+    # כמות הדוחות שחולקו באותו רחוב/עבירה
+    StructField("tickets_count", LongType(), False),
+    
+    # נתונים גיאוגרפיים (דיוק כפול עבור מפות)
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    
+    # חותמת זמן לעדכון אחרון
+    StructField("last_updated", TimestampType(), True)
+])
+
 gold_camera_violation_schema = StructType([
     StructField("street_name", StringType(), False),
     StructField("violation_description", StringType(), True),
     StructField("tickets_count", LongType(), False),
+    # הוספת הקואורדינטות - חובה להשתמש ב-DoubleType לדיוק מרבי
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
     StructField("last_updated", TimestampType(), True)
 ])
 
-address_schema = StructType([
+silver_address_schema = StructType([
     StructField("address_id", StringType(), True),
     StructField("full_address", StringType(), True),
     StructField("zip_code", StringType(), True),
@@ -55,7 +77,7 @@ address_schema = StructType([
     StructField("latitude", DoubleType(), True)
 ])
 
-parking_violation_codes_schema = StructType([
+silver_violation_codes_schema = StructType([
     StructField("violation_code", StringType(), True),
     StructField("violation_description", StringType(), True),
     StructField("manhattan_96th_st_below", DoubleType(), True),

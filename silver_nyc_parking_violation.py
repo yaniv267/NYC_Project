@@ -16,7 +16,7 @@ spark = SparkSession.builder \
 .getOrCreate()
 
 # 2. קריאה מה-Bronze
-df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_parking/")
+df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_parking_violation/")
 
 # 3. תהליך הניקוי + ניהול היסטוריה
 # נגדיר תאריך סף (למשל: נשמור רק נתונים מ-24 החודשים האחרונים)
@@ -53,6 +53,6 @@ print("💾 Saving to Silver layer with Year/Month partitioning...")
 (df_silver_final.write 
     .mode("overwrite") # כרגע overwrite, אבל בזכות ה-filter בצעד 3, היסטוריה ישנה תתנקה
     .partitionBy("year", "month") 
-    .parquet("s3a://spark/silver/parking_violations/"))
+    .parquet("s3a://spark/silver/nyc_parking_violation/"))
 
 print("✅ Silver Process Complete! Old history (>24 months) was filtered out.")
