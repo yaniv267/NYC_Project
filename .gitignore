@@ -5,4 +5,5 @@ __pycache__/
 _checkpoints/
 spark-warehouse/
 *.log
-.DS_Storeעןא
+.DS_Store
+minio_storage/
