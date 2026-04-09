@@ -85,6 +85,9 @@ services:
             - POSTGRES_PASSWORD=postgres
             - POSTGRES_DB=airflow
             - POSTGRES_PORT=5432
+        volumes:
+          # השורה הזו אומרת לדוקר: "קח את הסקריפט שלי ותריץ אותו כשהדאטה-בייס עולה"
+          - ./init.sql:/docker-entrypoint-initdb.d/init.sql
         ports:
             - "5432:5432"
 

@@ -1,0 +1,1 @@
+CREATE DATABASE nyc_data;
