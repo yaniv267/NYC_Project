@@ -4,6 +4,10 @@ from nyc_schema import silver_parking_schema
 # 1. יצירת Spark Session
 spark = SparkSession.builder \
 .appName("NYC_Parking_Silver") \
+.config("spark.driver.memory", "4g") \
+.config("spark.executor.memory", "4g") \
+.config("spark.memory.offHeap.enabled", "true") \
+.config("spark.memory.offHeap.size", "2g") \
 .config("spark.jars.packages", 
 "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,"
 "org.apache.hadoop:hadoop-aws:3.3.4,"

@@ -7,3 +7,26 @@ spark-warehouse/
 *.log
 .DS_Store
 minio_storage/
+
+# Spark & Database 
+spark-warehouse/ 
+metastore_db/
+derby.log 
+checkpoint/ 
+_checkpoints/
+
+# Data & Storage 
+*.parquet 
+*.json
+*.csv
+minio_storage/ 
+
+# Logs & OS 
+*.log 
+.DS_Store 
+Thumbs.db
+
+# Secrets & IDE
+.env
+.vscode/
+.idea/

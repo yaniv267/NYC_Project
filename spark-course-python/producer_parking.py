@@ -97,7 +97,7 @@ from datetime import datetime, timedelta, timezone
 # --- CONFIGURATION ---
 API_ENDPOINT = "https://data.cityofnewyork.us/resource/pvqr-7yc4.json"
 APP_TOKEN = "gdLWTLhefvaSPLJI2AV4lTv4m"
-KAFKA_BROKER = "localhost:9092"
+KAFKA_BROKER = "localhost:9093"
 TOPIC_NAME = "nyc_parking_violations_bronze"
 
 LIMIT = 1000
@@ -111,7 +111,8 @@ today_str = today.strftime("%Y-%m-%d")
 
 # --- KAFKA PRODUCER SETUP ---
 producer = KafkaProducer(
-    bootstrap_servers=KAFKA_BROKER,
+#    bootstrap_servers=KAFKA_BROKER,
+    bootstrap_servers="course-kafka:9093",
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
     acks='all',        
     retries=5

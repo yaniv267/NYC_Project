@@ -151,9 +151,17 @@
 import requests
 import json
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import broadcast, upper, trim
+import os
+os.environ["PYSPARK_SUBMIT_ARGS"] = "--driver-memory 4g pyspark-shell"
+
 
 spark = SparkSession.builder \
     .appName("bronze_nyc_addresses") \
+    .config("spark.memory.offHeap.enabled", "true") \
+    .config("spark.memory.offHeap.size", "2g") \
+    .config("spark.driver.memory", "4g") \
+    .config("spark.executor.memory", "4g") \
     .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
     .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
     .config("spark.hadoop.fs.s3a.access.key", "minioadmin") \
@@ -179,11 +187,18 @@ while offset < 1300000:
         if not data: break
             
         # שמירה כ-JSON גולמי בלי עיבוד
-        json_rdd = spark.sparkContext.parallelize([json.dumps(record) for record in data])
-        df_raw = spark.read.json(json_rdd)
+#        json_rdd = spark.sparkContext.parallelize([json.dumps(record) for record in data])
+#        df_raw = spark.read.json(json_rdd)
+        
+#        write_mode = "overwrite" if offset == 0 else "append"
+#        df_raw.write.mode(write_mode).json(output_path)
+
+# יצירת DataFrame ישירות מהרשימה (Best Practice - חוסך המרות מיותרות לטקסט ול-RDD)
+        df_raw = spark.createDataFrame(data)
         
         write_mode = "overwrite" if offset == 0 else "append"
-        df_raw.write.mode(write_mode).json(output_path)
+        # שמירה בפורמט עמודתי דחוס
+        df_raw.write.mode(write_mode).parquet(output_path)
         
         print(f"✅ Ingested batch {offset}")
         offset += chunk_size
