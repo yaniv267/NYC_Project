@@ -98,7 +98,7 @@ from datetime import datetime, timedelta, timezone
 API_ENDPOINT = "https://data.cityofnewyork.us/resource/pvqr-7yc4.json"
 APP_TOKEN = "gdLWTLhefvaSPLJI2AV4lTv4m"
 KAFKA_BROKER = "localhost:9092"
-TOPIC_NAME = "nyc_parking_violations_bronze"
+TOPIC_NAME = "nyc_traffic_violations_stream"
 
 LIMIT = 1000
 SLEEP_BETWEEN_CALLS = 1
@@ -113,14 +113,15 @@ today_str = today.strftime("%Y-%m-%d")
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
-    acks='all',        
+    acks='all',
     retries=5
 )
+
 
 def fetch_and_send_all():
     offset = 0
     total_sent = 0
-    
+
     print(f"🚀 Starting Raw Data Ingestion: {start_date} to {today_str}")
     print(f"📡 Sending ALL columns to Topic: {TOPIC_NAME}")
 
@@ -137,12 +138,12 @@ def fetch_and_send_all():
 
         try:
             response = requests.get(API_ENDPOINT, params=params, headers=headers, timeout=30)
-            
+
             if response.status_code == 429:
                 print("⚠ Rate limit reached! Sleeping for 15s...")
                 time.sleep(15)
                 continue
-            
+
             if response.status_code != 200:
                 print(f"❌ API Error {response.status_code}: {response.text}")
                 break
@@ -157,15 +158,17 @@ def fetch_and_send_all():
                 producer.send(TOPIC_NAME, value=record)
                 total_sent += 1
 
-            producer.flush() 
+            producer.flush()
             print(f"📦 Sent {len(data)} full records | Total: {total_sent} | Offset: {offset}")
-            
+
             offset += LIMIT
             time.sleep(SLEEP_BETWEEN_CALLS)
 
         except Exception as e:
-            print(f"❌ Critical Error: {str(e)}")
-            break
+            print(f"❌ Connection error: {str(e)}. Retrying in 30 seconds...")
+            time.sleep(30)  # תן לרשת לנשום רגע
+            continue  # אל תעצור, תנסה את ה-Offset הזה שוב
+
 
 if __name__ == "__main__":
     fetch_and_send_all()

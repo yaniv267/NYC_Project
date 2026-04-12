@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, upper, to_date, trim, lit, year, month, add_months, current_date
-from nyc_schema import silver_parking_schema
+from nyc_schema import silver_traffic_violations
+
 # 1. יצירת Spark Session
 spark = SparkSession.builder \
 .appName("NYC_Parking_Silver") \
@@ -16,7 +17,7 @@ spark = SparkSession.builder \
 .getOrCreate()
 
 # 2. קריאה מה-Bronze
-df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_parking_violation/")
+df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_traffic_violations/")
 
 # 3. תהליך הניקוי + ניהול היסטוריה
 # נגדיר תאריך סף (למשל: נשמור רק נתונים מ-24 החודשים האחרונים)
@@ -38,7 +39,7 @@ df_cleaned = (df_bronze
 # 4. התאמה לסכימה (הלוגיקה החכמה שלך)
 existing_columns = df_cleaned.columns
 final_selection = []
-for field in silver_parking_schema:
+for field in silver_traffic_violations:
     if field.name in existing_columns:
         final_selection.append(col(field.name))
     else:
@@ -53,6 +54,6 @@ print("💾 Saving to Silver layer with Year/Month partitioning...")
 (df_silver_final.write 
     .mode("overwrite") # כרגע overwrite, אבל בזכות ה-filter בצעד 3, היסטוריה ישנה תתנקה
     .partitionBy("year", "month") 
-    .parquet("s3a://spark/silver/nyc_parking_violation/"))
+    .parquet("s3a://spark/silver/nyc_traffic_violations/"))
 
 print("✅ Silver Process Complete! Old history (>24 months) was filtered out.")

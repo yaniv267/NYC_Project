@@ -77,7 +77,7 @@ services:
     depends_on:
       - elasticsearch
 
-    postgres:
+  postgres:
         container_name: postgres
         image: postgres:12
         environment:

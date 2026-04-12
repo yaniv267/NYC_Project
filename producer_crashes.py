@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, UTC
 # ==========================================
 APP_TOKEN = "gdLWTLhefvaSPLJI2AV4lTv4m"
 KAFKA_BROKER = "localhost:9092"
-TOPIC_NAME = "nyc_crashes_bronze"
+TOPIC_NAME = "nyc_crashes_stream"
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
@@ -20,7 +20,7 @@ print(f"🚀 Crash Maintenance Producer is LIVE. Monitoring NYC for new accident
 while True:
     try:
         # 1. לקיחת חלון זמן של יומיים אחורה כדי למנוע חורים במידע
-        start_date = (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
+        start_date = (datetime.now(UTC) - timedelta(days=14)).strftime('%Y-%m-%d')
 
         # 2. שאילתה ל-API (מביאה את ה-2000 הכי חדשים מהיומיים האחרונים)
         url = (

@@ -2,7 +2,7 @@
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType
 
 
-bronze_parking_schema = StructType([
+bronze_traffic_violations = StructType([
     StructField("summons_number", StringType(), True),
     StructField("plate_id", StringType(), True),
     StructField("registration_state", StringType(), True),
@@ -24,7 +24,7 @@ bronze_parking_schema = StructType([
     StructField("fiscal_year", IntegerType(), True)
 ])
 
-silver_parking_schema = StructType([
+silver_traffic_violations = StructType([
     StructField("summons_number", LongType(), True),       # מספר דוח - כעת כמספר ארוך
     StructField("plate_id", StringType(), True),           # לוחית רישוי
     StructField("registration_state", StringType(), True), # מדינה (NY, NJ וכו')
@@ -37,6 +37,23 @@ silver_parking_schema = StructType([
     StructField("house_number", StringType(), True),       # מספר בית
     StructField("violation_county", StringType(), True),   # מחוז (NY, BX, QN וכו')
     StructField("violation_time", StringType(), True)      # זמן העבירה
+])
+
+gold_traffic_violations_schema = StructType([
+    StructField("street_name", StringType(), True),
+    StructField("violation_code", IntegerType(), True),
+    StructField("violation_desc", StringType(), True),
+    StructField("tickets_count", LongType(), True),
+    StructField("start_date", DateType(), True),
+    StructField("end_date", DateType(), True),
+    StructField("issue_date", DateType(), True),
+    StructField("issue_day_name", StringType(), True),
+    StructField("lat", DoubleType(), True), # הכי חשוב
+    StructField("lon", DoubleType(), True), # הכי חשוב
+    StructField("category", StringType(), True),
+    StructField("risk_level", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("last_updated", TimestampType(), True)
 ])
 
 gold_parking_violation_schema = StructType([

@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col
-from nyc_schema import bronze_parking_schema
+from nyc_schema import bronze_traffic_violations
 
 spark = SparkSession.builder \
 .appName("NYC Parking Bronze Ingestion") \
@@ -16,7 +16,7 @@ spark = SparkSession.builder \
 .getOrCreate()
   
 kafka_bootstrap_servers = "course-kafka:9093"
-kafka_topic = "nyc_parking_violations_bronze"
+kafka_topic = "nyc_traffic_violations_stream"
 
 df_raw = spark.readStream \
     .format("kafka") \
@@ -30,12 +30,12 @@ df_raw = spark.readStream \
 df_json = df_raw.selectExpr("CAST(value AS STRING) as json_str")
 
 df_parsed = df_json.select(
-    from_json(col("json_str"), bronze_parking_schema).alias("data")
+    from_json(col("json_str"), bronze_traffic_violations).alias("data")
 ).select("data.*")
 
 
-minio_endpoint = "s3a://spark/bronze/nyc_parking_violation/"
-checkpoint_path = "s3a://spark/bronze/nyc_parking_violation/_checkpoints/"
+minio_endpoint = "s3a://spark/bronze/nyc_traffic_violations/"
+checkpoint_path = "s3a://spark/bronze/nyc_traffic_violations/_checkpoints/"
 
 query = df_parsed.writeStream \
     .format("parquet") \
