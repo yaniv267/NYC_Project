@@ -48,8 +48,8 @@ gold_traffic_violations_schema = StructType([
     StructField("end_date", DateType(), True),
     StructField("issue_date", DateType(), True),
     StructField("issue_day_name", StringType(), True),
-    StructField("lat", DoubleType(), True), # הכי חשוב
-    StructField("lon", DoubleType(), True), # הכי חשוב
+    StructField("lat", DoubleType(), True),
+    StructField("lon", DoubleType(), True), 
     StructField("category", StringType(), True),
     StructField("risk_level", StringType(), True),
     StructField("borough", StringType(), True),
