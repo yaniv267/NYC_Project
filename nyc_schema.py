@@ -56,23 +56,76 @@ gold_traffic_violations_schema = StructType([
     StructField("last_updated", TimestampType(), True)
 ])
 
-gold_parking_violation_schema = StructType([
-    # מפתח העיר: רחוב וקוד עבירה
-    StructField("street_name", StringType(), False),
-    StructField("violation_code", IntegerType(), False),
-    
-    # תיאור מילולי (מהמילון שיצרנו ב-Silver Reference)
-    StructField("violation_description", StringType(), True),
-    
-    # כמות הדוחות שחולקו באותו רחוב/עבירה
-    StructField("tickets_count", LongType(), False),
-    
-    # נתונים גיאוגרפיים (דיוק כפול עבור מפות)
+location_schema = StructType([
+    StructField("type", StringType(), True),
+    StructField("coordinates", ArrayType(DoubleType()), True)
+])
+
+bronze_311_schema = StructType([
+    StructField("unique_key", StringType(), True),
+    StructField("created_date", StringType(), True), # נשמור כסטרינג בברונז, נהפוך ל-Timestamp בסילבר
+    StructField("agency", StringType(), True),
+    StructField("agency_name", StringType(), True),
+    StructField("complaint_type", StringType(), True),
+    StructField("descriptor", StringType(), True),
+    StructField("location_type", StringType(), True),
+    StructField("incident_zip", StringType(), True),
+    StructField("incident_address", StringType(), True),
+    StructField("street_name", StringType(), True),
+    StructField("cross_street_1", StringType(), True),
+    StructField("cross_street_2", StringType(), True),
+    StructField("intersection_street_1", StringType(), True),
+    StructField("intersection_street_2", StringType(), True),
+    StructField("address_type", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("landmark", StringType(), True),
+    StructField("status", StringType(), True),
+    StructField("community_board", StringType(), True),
+    StructField("council_district", StringType(), True),
+    StructField("police_precinct", StringType(), True),
+    StructField("bbl", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("x_coordinate_state_plane", StringType(), True),
+    StructField("y_coordinate_state_plane", StringType(), True),
+    StructField("open_data_channel_type", StringType(), True),
+    StructField("park_facility_name", StringType(), True),
+    StructField("park_borough", StringType(), True),
+    StructField("latitude", StringType(), True), # מגיע בגרשיים ב-JSON, נמיר ל-Double בסילבר
+    StructField("longitude", StringType(), True),
+    StructField("location", location_schema, True) # שימוש בסכמה המקוננת שהגדרנו למעלה
+])
+
+silver_311_schema = StructType([
+    StructField("unique_key", StringType(), True),
+    StructField("created_date", TimestampType(), True),
+    StructField("agency", StringType(), True),
+    StructField("complaint_type", StringType(), True),
+    StructField("descriptor", StringType(), True),
+    StructField("city", StringType(), True),
+    StructField("borough", StringType(), True),
     StructField("latitude", DoubleType(), True),
     StructField("longitude", DoubleType(), True),
-    
-    # חותמת זמן לעדכון אחרון
-    StructField("last_updated", TimestampType(), True)
+    StructField("incident_zip", StringType(), True),
+    StructField("year", IntegerType(), True),
+    StructField("month", IntegerType(), True),
+    StructField("hour", IntegerType(), True),
+    StructField("day_name", StringType(), True),
+    StructField("street_name", StringType(), True)
+])
+
+gold_311_schema = StructType([
+    StructField("borough", StringType(), True),
+    StructField("complaint_type", StringType(), True),
+    StructField("complaint_count", LongType(), True),
+    StructField("intensity_level", StringType(), True),
+    StructField("avg_lat", DoubleType(), True),
+    StructField("avg_lon", DoubleType(), True),
+    StructField("year", IntegerType(), True),
+    StructField("month", IntegerType(), True),
+    StructField("hour", IntegerType(), True),
+    StructField("day_name", StringType(), True),
+    StructField("latest_incident", TimestampType(), True),
+    StructField("last_updated_at", TimestampType(), True)
 ])
 
 gold_camera_violation_schema = StructType([
@@ -152,13 +205,6 @@ traffic_silver_schema = StructType([
     StructField("ingestion_time", TimestampType(), True) # מתי נכנס למערכת שלנו
 ])
 
-location_schema = StructType([
-    StructField("latitude", StringType(), True),
-    StructField("longitude", StringType(), True),
-    StructField("human_address", StringType(), True)
-])
-
-
 crashes_bronze_schema = StructType([
     StructField("crash_date", StringType(), True),
     StructField("crash_time", StringType(), True),
@@ -198,5 +244,6 @@ crashes_silver_schema = StructType([
     StructField("motorist_injured", IntegerType(), True),
     StructField("contributing_factor", StringType(), True),
     StructField("vehicle_type", StringType(), True),
-    StructField("ingestion_time", TimestampType(), True)
+    StructField("ingestion_time", TimestampType(), True),
+    StructField("borough", StringType(), True)
 ])
