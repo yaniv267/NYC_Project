@@ -17,7 +17,7 @@ spark = SparkSession.builder \
 .getOrCreate()
 
 kafka_bootstrap_servers = "course-kafka:9093"
-kafka_topic = "nyc_traffic_bronze"
+kafka_topic = "nyc_traffic_stream"
 
 
 df_raw = spark.read \

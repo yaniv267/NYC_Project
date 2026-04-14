@@ -57,7 +57,8 @@ df_silver_final = df_silver.select(
     col("motorist_injured"),
     col("contributing_factor_vehicle_1").alias("contributing_factor"),
     col("vehicle_type_code1").alias("vehicle_type"),
-    col("ingestion_time")
+    col("ingestion_time"),
+    col("borough")
 )
 
 # 5. בדיקות והדפסה

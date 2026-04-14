@@ -17,13 +17,14 @@ spark = SparkSession.builder \
 .getOrCreate()
   
 kafka_bootstrap_servers = "course-kafka:9093"
-kafka_topic = "nyc_crashes_bronze"
+kafka_topic = "nyc_crashes_stream"
 
 df_raw = spark.readStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
     .option("subscribe", kafka_topic) \
     .option("startingOffsets", "earliest") \
+    .option("failOnDataLoss", "false")\
     .load()
 
 
