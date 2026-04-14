@@ -19,7 +19,7 @@ print(f"🚀 Crash Maintenance Producer is LIVE. Monitoring NYC for new accident
 
 while True:
     try:
-        # 1. לקיחת חלון זמן של יומיים אחורה כדי למנוע חורים במידע
+        # 1. לקיחת חלון זמן של עמות הזמן שמוגדר אחורה כדי למנוע חורים במידע
         start_date = (datetime.now(UTC) - timedelta(days=14)).strftime('%Y-%m-%d')
 
         # 2. שאילתה ל-API (מביאה את ה-2000 הכי חדשים מהיומיים האחרונים)
