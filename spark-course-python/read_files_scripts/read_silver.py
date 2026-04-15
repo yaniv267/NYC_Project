@@ -29,7 +29,7 @@ df_silver.printSchema()
 
 print("\n=== Sample Data (First 10 Rows) ===")
 # truncate=False גורם לכך שהעמודות לא ייחתכו אם הטקסט ארוך
-df_silver.show(10, truncate=False)
+df_silver.show(100, truncate=False)
 
 print("\n=== Total Records ===")
 total_count = df_silver.count()
