@@ -26,12 +26,14 @@ df_silver = df_raw.select(
     upper(trim(col("full_street_name"))).alias("street_name_clean"),
     upper(trim(concat_ws(" ", col("house_number"), col("full_street_name")))).alias("full_address"),
     col("zipcode").cast("string").alias("zip_code"),
-    # חילוץ קואורדינטות מהמבנה הגיאומטרי
+    
+    # התיקון כאן: boroughcode במקום borocode
+    col("boroughcode").cast("string").alias("borough_code"), 
+    
     col("the_geom.coordinates")[0].cast("double").alias("longitude"),
     col("the_geom.coordinates")[1].cast("double").alias("latitude")
 )
-
-# 3. שמירה כ-Parquet (מהיר פי 10 ל-Join ב-Gold)
+# 3. שמירה כ-Parquet
 df_silver.write.mode("overwrite").parquet(output_path)
 
-print(f"✅ Silver Layer Ready at {output_path}")
+print(f"✅ Silver Layer Ready with borough_code at {output_path}")

@@ -128,6 +128,21 @@ gold_311_schema = StructType([
     StructField("last_updated_at", TimestampType(), True)
 ])
 
+gold_311_schema = StructType([
+    StructField("borough", StringType(), True),           # הרובע (Brooklyn, Manhattan וכו')
+    StructField("complaint_type", StringType(), True),    # סוג התלונה (Noise, Illegal Parking וכו')
+    StructField("complaint_count", LongType(), True),     # כמות התלונות באותו חתך זמן
+    StructField("intensity_level", StringType(), True),   # רמת דחיפות (HIGH, MEDIUM, NORMAL)
+    StructField("avg_lat", DoubleType(), True),           # מיקום ממוצע (מעולה למפה בבוט)
+    StructField("avg_lon", DoubleType(), True),           # מיקום ממוצע
+    StructField("year", IntegerType(), True),             # שנה (מהסילבר)
+    StructField("month", IntegerType(), True),            # חודש (מהסילבר)
+    StructField("hour", IntegerType(), True),             # שעת השיא (Peak Hour) שחישבנו
+    StructField("day_name", StringType(), True),          # שם היום (Monday, Tuesday וכו')
+    StructField("latest_incident", TimestampType(), True), # מתי קרה הדיווח הכי טרי
+    StructField("last_updated_at", TimestampType(), True)  # מתי טבלת הגולד התעדכנה לאחרונה
+])
+
 gold_camera_violation_schema = StructType([
     StructField("street_name", StringType(), False),
     StructField("violation_description", StringType(), True),
@@ -154,27 +169,27 @@ silver_violation_codes_schema = StructType([
     StructField("all_other_areas", DoubleType(), True)
 ])
 
-weather_bronze_schema = StructType([
-    StructField("latitude", DoubleType(), True),
-    StructField("longitude", DoubleType(), True),
-    StructField("timezone", StringType(), True),
-    StructField("hourly", StructType([
-    StructField("time", ArrayType(StringType()), True),
-    StructField("temperature_2m", ArrayType(DoubleType()), True),
-    StructField("precipitation", ArrayType(DoubleType()), True),
-    StructField("snowfall", ArrayType(DoubleType()), True)
-    ]), True)
-])
+# weather_bronze_schema = StructType([
+#     StructField("latitude", DoubleType(), True),
+#     StructField("longitude", DoubleType(), True),
+#     StructField("timezone", StringType(), True),
+#     StructField("hourly", StructType([
+#     StructField("time", ArrayType(StringType()), True),
+#     StructField("temperature_2m", ArrayType(DoubleType()), True),
+#     StructField("precipitation", ArrayType(DoubleType()), True),
+#     StructField("snowfall", ArrayType(DoubleType()), True)
+#     ]), True)
+# ])
 
 
-weather_silver_schema = StructType([
-    StructField("weather_hour", StringType(), False), # המפתח ל-Join (למשל 2026-03-28 14:00)
-    StructField("temp", DoubleType(), True),
-    StructField("rain", DoubleType(), True),
-    StructField("snow", DoubleType(), True)
-])
+# weather_silver_schema = StructType([
+#     StructField("weather_hour", StringType(), False), # המפתח ל-Join (למשל 2026-03-28 14:00)
+#     StructField("temp", DoubleType(), True),
+#     StructField("rain", DoubleType(), True),
+#     StructField("snow", DoubleType(), True)
+# ])
 
-traffic_bronze_schema = StructType([
+bronze_traffic_schema = StructType([
     StructField("id", StringType(), True),
     StructField("speed", StringType(), True),
     StructField("travel_time", StringType(), True),
@@ -190,22 +205,25 @@ traffic_bronze_schema = StructType([
     StructField("link_name", StringType(), True),
     StructField("ingested_at", StringType(), True)
 ])
-
-traffic_silver_schema = StructType([
+silver_traffic_schema = StructType([
     StructField("id", StringType(), True),
-    StructField("speed", FloatType(), True),           # הפך למספר עשרוני
-    StructField("travel_time", IntegerType(), True),   # הפך למספר שלם
+    StructField("speed", FloatType(), True),
+    StructField("travel_time", IntegerType(), True),
     StructField("status", StringType(), True),
-    StructField("event_time", TimestampType(), True),  # זמן האירוע המקורי (נקי)
     StructField("link_id", StringType(), True),
     StructField("borough", StringType(), True),
     StructField("link_name", StringType(), True),
-    StructField("latitude", DoubleType(), True),       # חולץ החוצה
-    StructField("longitude", DoubleType(), True),      # חולץ החוצה
-    StructField("ingestion_time", TimestampType(), True) # מתי נכנס למערכת שלנו
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("event_time", TimestampType(), True),
+    StructField("year", IntegerType(), True),    # נוסף לאנליטיקה
+    StructField("month", IntegerType(), True),   # נוסף לאנליטיקה
+    StructField("hour", IntegerType(), True),    # נוסף לאנליטיקה
+    StructField("day_name", StringType(), True), # נוסף לאנליטיקה
+    StructField("ingestion_time", TimestampType(), True)
 ])
 
-crashes_bronze_schema = StructType([
+bronze_crashes_schema = StructType([
     StructField("crash_date", StringType(), True),
     StructField("crash_time", StringType(), True),
     StructField("borough", StringType(), True),
@@ -231,7 +249,7 @@ crashes_bronze_schema = StructType([
     StructField("ingested_at", StringType(), True)
 ])
 
-crashes_silver_schema = StructType([
+silver_crashes_schema = StructType([
     StructField("collision_id", StringType(), True),
     StructField("crash_timestamp", TimestampType(), True), # איחוד של תאריך ושעה
     StructField("latitude", DoubleType(), True),
@@ -246,4 +264,17 @@ crashes_silver_schema = StructType([
     StructField("vehicle_type", StringType(), True),
     StructField("ingestion_time", TimestampType(), True),
     StructField("borough", StringType(), True)
+])
+
+gold_crashes_schema = StructType([
+    StructField("street_name", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("total_crashes", LongType(), True),   # Count תמיד מחזיר Long
+    StructField("total_injured", LongType(), True),   # Sum על Integer מחזיר לרוב Long
+    StructField("total_killed", LongType(), True),    # כנ"ל
+    StructField("main_cause", StringType(), True),
+    StructField("crash_pct", DoubleType(), True),     # ביצעת Cast ל-Double
+    StructField("danger_rank", IntegerType(), True),  # Rank מחזיר Integer
+    StructField("safety_label", StringType(), True),
+    StructField("last_updated", TimestampType(), True)
 ])
