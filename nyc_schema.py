@@ -113,34 +113,21 @@ silver_311_schema = StructType([
     StructField("street_name", StringType(), True)
 ])
 
-gold_311_schema = StructType([
-    StructField("borough", StringType(), True),
-    StructField("complaint_type", StringType(), True),
-    StructField("complaint_count", LongType(), True),
-    StructField("intensity_level", StringType(), True),
-    StructField("avg_lat", DoubleType(), True),
-    StructField("avg_lon", DoubleType(), True),
-    StructField("year", IntegerType(), True),
-    StructField("month", IntegerType(), True),
-    StructField("hour", IntegerType(), True),
-    StructField("day_name", StringType(), True),
-    StructField("latest_incident", TimestampType(), True),
-    StructField("last_updated_at", TimestampType(), True)
-])
 
 gold_311_schema = StructType([
-    StructField("borough", StringType(), True),           # הרובע (Brooklyn, Manhattan וכו')
-    StructField("complaint_type", StringType(), True),    # סוג התלונה (Noise, Illegal Parking וכו')
-    StructField("complaint_count", LongType(), True),     # כמות התלונות באותו חתך זמן
-    StructField("intensity_level", StringType(), True),   # רמת דחיפות (HIGH, MEDIUM, NORMAL)
-    StructField("avg_lat", DoubleType(), True),           # מיקום ממוצע (מעולה למפה בבוט)
-    StructField("avg_lon", DoubleType(), True),           # מיקום ממוצע
-    StructField("year", IntegerType(), True),             # שנה (מהסילבר)
-    StructField("month", IntegerType(), True),            # חודש (מהסילבר)
-    StructField("hour", IntegerType(), True),             # שעת השיא (Peak Hour) שחישבנו
-    StructField("day_name", StringType(), True),          # שם היום (Monday, Tuesday וכו')
-    StructField("latest_incident", TimestampType(), True), # מתי קרה הדיווח הכי טרי
-    StructField("last_updated_at", TimestampType(), True)  # מתי טבלת הגולד התעדכנה לאחרונה
+    StructField("borough", StringType()),
+    StructField("complaint_type", StringType()),
+    StructField("year", IntegerType()),
+    StructField("month", IntegerType()),
+    StructField("day_name", StringType()),
+    StructField("complaint_count", LongType()),
+    StructField("latitude", DoubleType()),
+    StructField("longitude", DoubleType()),
+    StructField("peak_hour", IntegerType()),
+    StructField("last_updated_at", TimestampType()),
+    StructField("first_complaint_date", TimestampType()),
+    StructField("last_complaint_date", TimestampType()),
+    StructField("street_name", StringType(), True)
 ])
 
 gold_camera_violation_schema = StructType([
@@ -251,10 +238,14 @@ bronze_crashes_schema = StructType([
 
 silver_crashes_schema = StructType([
     StructField("collision_id", StringType(), True),
-    StructField("crash_timestamp", TimestampType(), True), # איחוד של תאריך ושעה
+    StructField("crash_timestamp", TimestampType(), True),
+    StructField("year", IntegerType(), True),
+    StructField("month", IntegerType(), True),
+    StructField("day_of_week", StringType(), True),
     StructField("latitude", DoubleType(), True),
     StructField("longitude", DoubleType(), True),
     StructField("on_street_name", StringType(), True),
+    StructField("borough", StringType(), True),
     StructField("total_injured", IntegerType(), True),
     StructField("total_killed", IntegerType(), True),
     StructField("pedestrians_injured", IntegerType(), True),
@@ -262,19 +253,28 @@ silver_crashes_schema = StructType([
     StructField("motorist_injured", IntegerType(), True),
     StructField("contributing_factor", StringType(), True),
     StructField("vehicle_type", StringType(), True),
-    StructField("ingestion_time", TimestampType(), True),
-    StructField("borough", StringType(), True)
+    StructField("ingestion_time", TimestampType(), True)
 ])
 
 gold_crashes_schema = StructType([
     StructField("street_name", StringType(), True),
     StructField("borough", StringType(), True),
-    StructField("total_crashes", LongType(), True),   # Count תמיד מחזיר Long
-    StructField("total_injured", LongType(), True),   # Sum על Integer מחזיר לרוב Long
-    StructField("total_killed", LongType(), True),    # כנ"ל
+
+    StructField("total_crashes", IntegerType(), True),
+    StructField("total_injured", IntegerType(), True),
+    StructField("total_killed", IntegerType(), True),
+
     StructField("main_cause", StringType(), True),
-    StructField("crash_pct", DoubleType(), True),     # ביצעת Cast ל-Double
-    StructField("danger_rank", IntegerType(), True),  # Rank מחזיר Integer
+
+    StructField("crash_pct", DoubleType(), True),
+    StructField("danger_rank", IntegerType(), True),
     StructField("safety_label", StringType(), True),
+
+    # 🆕 TIME INSIGHTS
+    StructField("first_crash_date", TimestampType(), True),
+    StructField("last_crash_date", TimestampType(), True),
+    StructField("unique_crash_days", LongType(), True),
+    StructField("sample_day_of_week", StringType(), True),
+
     StructField("last_updated", TimestampType(), True)
 ])

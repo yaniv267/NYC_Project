@@ -1,6 +1,13 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col
+from pyspark.sql.functions import from_json, col,year,month,to_timestamp
 from nyc_schema import bronze_traffic_violations
+
+# --- CONFIGURATION ---
+KAFKA_BOOTSTRAP_SERVERS = "course-kafka:9093"
+KAFKA_TOPIC = "nyc_traffic_violations_stream"
+MINIO_OUTPUT_PATH = "s3a://spark/bronze/nyc_nyc_traffic_violations/"
+CHECKPOINT_PATH = "s3a://spark/bronze/nyc_traffic_violations/_checkpoints/"
+
 
 spark = SparkSession.builder \
 .appName("NYC Parking Bronze Ingestion") \
@@ -15,14 +22,14 @@ spark = SparkSession.builder \
 .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
 .getOrCreate()
   
-kafka_bootstrap_servers = "course-kafka:9093"
-kafka_topic = "nyc_traffic_violations_stream"
+spark.sparkContext.setLogLevel("WARN")
 
 df_raw = spark.readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", kafka_bootstrap_servers) \
-    .option("subscribe", kafka_topic) \
+    .option("kafka.bootstrap.servers", KAFKA_BOOTSTRAP_SERVERS) \
+    .option("subscribe", KAFKA_TOPIC) \
     .option("startingOffsets", "earliest") \
+    .option("failOnDataLoss", "false") \
     .load()
 
 
@@ -33,14 +40,17 @@ df_parsed = df_json.select(
     from_json(col("json_str"), bronze_traffic_violations).alias("data")
 ).select("data.*")
 
+df_final=df_parsed\
+         .withColumn("issue_timestamp", to_timestamp(col("issue_date"))) \
+         .withColumn("year", year(col("issue_timestamp"))) \
+         .withColumn("month", month(col("issue_timestamp")))
 
-minio_endpoint = "s3a://spark/bronze/nyc_traffic_violations/"
-checkpoint_path = "s3a://spark/bronze/nyc_traffic_violations/_checkpoints/"
 
-query = df_parsed.writeStream \
+query = df_final.writeStream \
     .format("parquet") \
-    .option("path", minio_endpoint) \
-    .option("checkpointLocation", checkpoint_path) \
+    .option("path", MINIO_OUTPUT_PATH) \
+    .option("checkpointLocation", CHECKPOINT_PATH) \
+    .partitionBy("year", "month") \
     .outputMode("append") \
     .start()
 

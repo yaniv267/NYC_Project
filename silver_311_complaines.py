@@ -96,7 +96,8 @@ spark.sparkContext.setLogLevel("WARN")
 # 2. קריאה מה-Bronze
 print("📖 Reading 311 Bronze data...")
 df_bronze = spark.read.parquet("s3a://spark/bronze/311_complaints/")
-
+df_bronze.select("created_date").show(20, False)
+df_bronze.printSchema()
 # 3. טרנספורמציה וניקוי נתונים
 # מגבלת היסטוריה של 24 חודשים
 retention_limit = F.add_months(F.current_date(), -24)

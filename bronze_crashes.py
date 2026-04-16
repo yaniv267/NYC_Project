@@ -48,7 +48,7 @@ df_final = df_parsed \
         .withColumn("event_date", to_date(col("CRASH_DATE"), "MM/dd/yyyy")) \
         .withColumn("event_year", year(col("event_date"))) \
         .withColumn("event_month", month(col("event_date")))
-
+df_final.printSchema()
     # 5. כתיבת הסטרים ל-Minio בפורמט Parquet
 query = df_final.writeStream \
         .format("parquet") \
@@ -59,9 +59,16 @@ query = df_final.writeStream \
         .trigger(processingTime='1 minute') \
         .start()
 
+# query = df_final.writeStream \
+#     .format("console") \
+#     .option("truncate", False) \
+#     .start()
+
 print(f"Ingestion started successfully!")
 print(f"Writing to: {MINIO_OUTPUT_PATH}")
 print(f"Checkpoints at: {CHECKPOINT_PATH}")
+
+
 
 query.awaitTermination()
 

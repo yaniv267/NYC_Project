@@ -94,42 +94,84 @@ silver_df = spark.read.parquet("s3a://spark/silver/311_complaints/")
 
 # 3. חישוב שעת שיא (Peak Hour) לכל סוג תלונה בכל רובע
 # זה נתון מעולה לבוט: "מתי הכי כדאי להימנע מהאזור?"
-peak_hour_df = (silver_df
-    .groupBy("borough", "complaint_type", "hour")
-    .count()
-    .withColumn("rn", F.row_number().over(Window.partitionBy("borough", "complaint_type").orderBy(F.desc("count"))))
-    .filter(F.col("rn") == 1)
-    .select("borough", "complaint_type", F.col("hour").alias("peak_hour"))
-)
 
+# -------------------------
+# 🔥 Peak Hour per street
+# -------------------------
+peak_hour_df = (
+    silver_df
+    .groupBy("borough", "complaint_type", "street_name", "hour")
+    .count()
+    .withColumn(
+        "rn",
+        F.row_number().over(
+            Window.partitionBy("borough", "complaint_type", "street_name")
+            .orderBy(F.desc("count"))
+        )
+    )
+    .filter(F.col("rn") == 1)
+    .select(
+        "borough",
+        "complaint_type",
+        "street_name",
+        F.col("hour").alias("peak_hour")
+    )
+)
 # 4. אגרגציה ראשית לפי רובע, סוג תלונה וזמן (לפי הסכימה)
 print("📊 Aggregating complaints metrics...")
-gold_base = (silver_df
-    .groupBy("borough", "complaint_type", "year", "month", "day_name")
+
+gold_base = (
+    silver_df
+    .groupBy(
+        "borough",
+        "complaint_type",
+        "street_name",
+        "year",
+        "month",
+        "day_name"
+    )
     .agg(
         F.count("unique_key").alias("complaint_count"),
-        F.avg("latitude").alias("avg_lat"),
-        F.avg("longitude").alias("avg_lon"),
-        F.max("created_date").alias("latest_incident") # מתי קרה המקרה האחרון
+
+        # 📍 location (representative point)
+        F.first("latitude", ignorenulls=True).alias("latitude"),
+        F.first("longitude", ignorenulls=True).alias("longitude"),
+
+        # ⏱ time range
+        F.min("created_date").alias("first_complaint_date"),
+        F.max("created_date").alias("last_complaint_date")
     )
 )
 
 # 5. חיבור הנתונים, הוספת אינטנסיביות ואכיפת סכימה
-final_gold_calculated = (gold_base
-    .join(peak_hour_df, ["borough", "complaint_type"], "left")
-    .withColumnRenamed("peak_hour", "hour") # התאמה לשם השדה בסכימה
-    .withColumn("intensity_level", 
+
+final_gold_calculated = (
+    gold_base
+    .join(
+        peak_hour_df,
+        ["borough", "complaint_type", "street_name"],
+        "left"
+    )
+    .withColumn(
+        "intensity_level",
         F.when(F.col("complaint_count") > 100, "🔴 HIGH")
          .when(F.col("complaint_count") > 50, "🟠 MEDIUM")
-         .otherwise("🟢 NORMAL"))
+         .otherwise("🟢 NORMAL")
+    )
     .withColumn("last_updated_at", F.current_timestamp())
 )
 
 # --- אכיפת סכימה סופית (The Data Contract) ---
 print("🛡️ Enforcing Gold Schema...")
-gold_final = final_gold_calculated.select(*[F.col(field.name).cast(field.dataType) for field in gold_311_schema])
 
-gold_final.show(5, truncate=False)
+for f in gold_311_schema:
+    if f.name not in final_gold_calculated.columns:
+        final_gold_calculated = final_gold_calculated.withColumn(f.name, F.lit(None))
+
+gold_final = final_gold_calculated.select(
+    *[F.col(f.name).cast(f.dataType) for f in gold_311_schema]
+)
+
 
 # 6. שמירה (MinIO + Postgres)
 print("🚀 Exporting Gold to targets...")
