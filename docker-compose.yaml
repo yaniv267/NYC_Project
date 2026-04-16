@@ -68,6 +68,8 @@ services:
       - "9200:9200"
     environment:
       discovery.type: single-node
+    volumes:
+      - ./es_data:/usr/share/elasticsearch/data
 
   kibana:
     container_name: kibana

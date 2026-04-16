@@ -83,8 +83,8 @@ gold_final = (silver_df
         # כאן התיקון: אנחנו מציגים את ה-end_date בתור ה-issue_date הסופי
         F.col("end_date").alias("issue_date"),
         F.col("issue_day_name"),
-        F.col("lat").cast("double"),
-        F.col("lon").cast("double"),
+        #F.col("lat").cast("double"),
+        #F.col("lon").cast("double"),
         F.concat_ws(",", F.col("lat").cast("string"), F.col("lon").cast("string")).alias("location"), # for ELK - lat,lon
         F.when(F.col("violation_code").isin(camera_codes), "Camera").otherwise("Parking").alias("category"),
         F.when(F.col("tickets_count") > 1000, "🔴 High Risk")
@@ -95,7 +95,9 @@ gold_final = (silver_df
          .when(F.col("violation_county").isin("NY", "Manhattan"), "Manhattan")
          .when(F.col("violation_county").isin("BX", "Bronx"), "Bronx")
          .otherwise("Other").alias("borough"),
-        F.current_timestamp().alias("last_updated")
+        F.current_timestamp().alias("last_updated"),
+        F.sha2(F.concat_ws("_", F.col("street_name"), F.col("violation_code"), F.col("end_date")), 256).alias("doc_id")
+
     )
 )
 # 7. בדיקת תוצאות
@@ -103,7 +105,8 @@ gold_final = gold_final.coalesce(4).cache()
 
 final_count = gold_final.count()
 print(f"✅ Created Gold layer with {final_count} rows.")
-gold_final.orderBy(F.col("tickets_count").desc()).show(10, truncate=False)
+#gold_final.orderBy(F.col("tickets_count").desc()).show(10, truncate=False)
+gold_final.drop("doc_id").orderBy(F.col("tickets_count").desc()).show(50, truncate=False)
 
 # 8. שמירה כפולה: גם למינאו (גולד) וגם לפוסטגרס (בוט)
 if final_count > 0:
@@ -136,6 +139,8 @@ if final_count > 0:
             .option("es.http.timeout", "1m")        # נותן לאלסטיק דקה להגיב
             .option("es.http.retries", "3")         # מנסה שוב אם יש עומס
             .mode("append") # שינינו ל-append כי האינדקס כבר קיים!
+            .option("es.mapping.id", "doc_id")
+            .option("es.write.operation", "upsert")
             .save())
         print("✅ Success! Data is in Elasticsearch.")
     except Exception as e:
