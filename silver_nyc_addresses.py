@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, upper, trim, concat_ws
-from nyc_schema import silver_address_schema
-
+from pyspark.sql import functions as F
+from nyc_schema import silver_address_schema 
+# 1. אתחול הסשן
 spark = SparkSession.builder \
     .appName("silver_nyc_addresses") \
     .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
@@ -12,28 +12,92 @@ spark = SparkSession.builder \
     .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
     .getOrCreate()
 
-input_path = "s3a://spark/bronze/addresses/"
-output_path = "s3a://spark/silver/addresses/"
+spark.sparkContext.setLogLevel("WARN")
+# השתקת הודעות מערכת לא חשובות כדי שהטרמינל יהיה נקי
+spark.sparkContext.setLogLevel("WARN")
 
-print(f"🧹 Refining Bronze data to Silver...")
+# ==========================================
+# 2. קריאת הנתונים הגולמיים (Bronze)
+# ==========================================
+print("📥 Loading raw data from Bronze layer...")
 
-# 1. קריאת כל ה-JSONs מהברונז בבת אחת
-df_raw = spark.read.json(input_path)
+# קריאת כל 967,000 הרשומות ששמרנו קודם בפורמט Parquet
+bronze_df = spark.read.parquet("s3a://spark/bronze/addresses/")
 
-# 2. עיבוד והתאמה לסכימה
-df_silver = df_raw.select(
-    col("addresspointid").cast("string").alias("address_id"),
-    upper(trim(col("full_street_name"))).alias("street_name_clean"),
-    upper(trim(concat_ws(" ", col("house_number"), col("full_street_name")))).alias("full_address"),
-    col("zipcode").cast("string").alias("zip_code"),
+# ==========================================
+# 3. עיבוד וניקוי הנתונים (Silver Transformation)
+# ==========================================
+print("🧹 Cleaning data and extracting coordinates...")
+
+silver_df = (
+    bronze_df
     
-    # התיקון כאן: boroughcode במקום borocode
-    col("boroughcode").cast("string").alias("borough_code"), 
+    # סינון שורות פגומות: אנחנו שומרים רק שורות שיש בהן מיקום גיאוגרפי ושם רחוב מלא
+    .filter(F.col("the_geom").isNotNull() & F.col("Full Street Name").isNotNull())
     
-    col("the_geom.coordinates")[0].cast("double").alias("longitude"),
-    col("the_geom.coordinates")[1].cast("double").alias("latitude")
+    # חילוץ קו אורך (Longitude):
+    # העמודה המקורית נראית ככה: POINT (-73.922 40.702)
+    # אנחנו משתמשים בביטוי רגולרי (Regex) כדי לשלוף את המספר הראשון ולהמיר אותו לעשרוני (double)
+    .withColumn("longitude", F.regexp_extract(F.col("the_geom"), r"POINT \(([^ ]+) ([^ ]+)\)", 1).cast("double"))
+    
+    # חילוץ קו רוחב (Latitude):
+    # שולפים את המספר השני מתוך הסוגריים וממירים לעשרוני
+    .withColumn("latitude", F.regexp_extract(F.col("the_geom"), r"POINT \(([^ ]+) ([^ ]+)\)", 2).cast("double"))
+    
+    # בחירת העמודות שנצטרך להמשך ושינוי השמות שלהן לאנגלית תקנית וללא רווחים
+    .select(
+        # מזהה הכתובת מומר למחרוזת
+        F.col("Address Point ID").cast("string").alias("address_id"),
+        
+        # ניקוי רווחים מיותרים בתחילת ובסוף שם הרחוב
+        F.trim(F.col("Full Street Name")).alias("street_name"),
+        
+        # קוד הרובע מומר למחרוזת כדי שיתאים לטבלת דוחות החניה בהמשך
+        F.col("Borough Code").cast("string").alias("borough_code"),
+        
+        # מיקוד מומר למחרוזת
+        F.col("ZIPCODE").cast("string").alias("zip_code"),
+        
+        # העמודות החדשות שיצרנו
+        "longitude",
+        "latitude"
+    )
+    
+    # הסרת כפילויות: מוודאים שכל מזהה כתובת מופיע פעם אחת בלבד
+    .dropDuplicates(["address_id"])
 )
-# 3. שמירה כ-Parquet
-df_silver.write.mode("overwrite").parquet(output_path)
 
-print(f"✅ Silver Layer Ready with borough_code at {output_path}")
+
+# 4. אכיפת סכימה סופית (The Data Contract)
+final_columns = [field.name for field in silver_address_schema]
+df_silver_final = silver_df.select(*final_columns)
+# ==========================================
+# 4. שמירת התוצאות (Write to Silver)
+# ==========================================
+print("💾 Saving cleaned data to Silver layer...")
+
+# כתיבת הנתונים הנקיים בחזרה ל-MinIO בתיקיית הסילבר, תוך דריסת נתונים ישנים אם קיימים
+df_silver_final.write.mode("overwrite").parquet("s3a://spark/silver/addresses/")
+
+# ==========================================
+# 5. בדיקה והצגת התוצאות (Validation)
+# ==========================================
+print("\n" + "="*50)
+print("📊 Silver Layer Results")
+print("="*50)
+
+# ספירת כמות השורות הסופית שעברה את הסינון
+final_count = df_silver_final.count()
+print(f"Total processed records: {final_count:,}")
+
+# הדפסת מבנה הנתונים החדש והנקי
+print("\n--- Final Silver Schema: ---")
+df_silver_final.printSchema()
+
+# הצגת 10 השורות הראשונות כדי לראות את הנתונים בעין
+print("\n--- Top 10 rows: ---")
+df_silver_final.show(10, truncate=False)
+print("="*50)
+
+# סגירת סביבת העבודה בסיום התהליך
+spark.stop()

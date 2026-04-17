@@ -5,7 +5,7 @@ from nyc_schema import bronze_traffic_violations
 # --- CONFIGURATION ---
 KAFKA_BOOTSTRAP_SERVERS = "course-kafka:9093"
 KAFKA_TOPIC = "nyc_traffic_violations_stream"
-MINIO_OUTPUT_PATH = "s3a://spark/bronze/nyc_nyc_traffic_violations/"
+MINIO_OUTPUT_PATH = "s3a://spark/bronze/nyc_traffic_violations/"
 CHECKPOINT_PATH = "s3a://spark/bronze/nyc_traffic_violations/_checkpoints/"
 
 
