@@ -1,5 +1,5 @@
 
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType,BooleanType
 
 
 bronze_traffic_violations = StructType([
@@ -193,21 +193,47 @@ bronze_traffic_schema = StructType([
     StructField("ingested_at", StringType(), True)
 ])
 silver_traffic_schema = StructType([
-    StructField("id", StringType(), True),
+    StructField("link_id", StringType(), False),
+    StructField("link_name", StringType(), True),
+    StructField("borough", StringType(), True), # <--- הוספנו
     StructField("speed", FloatType(), True),
     StructField("travel_time", IntegerType(), True),
-    StructField("status", StringType(), True),
-    StructField("link_id", StringType(), True),
-    StructField("borough", StringType(), True),
-    StructField("link_name", StringType(), True),
     StructField("latitude", DoubleType(), True),
     StructField("longitude", DoubleType(), True),
     StructField("event_time", TimestampType(), True),
-    StructField("year", IntegerType(), True),    # נוסף לאנליטיקה
-    StructField("month", IntegerType(), True),   # נוסף לאנליטיקה
-    StructField("hour", IntegerType(), True),    # נוסף לאנליטיקה
-    StructField("day_name", StringType(), True), # נוסף לאנליטיקה
-    StructField("ingestion_time", TimestampType(), True)
+    StructField("day", IntegerType(), True),
+    StructField("hour", IntegerType(), True),
+    StructField("day_name", StringType(), True),
+    StructField("date_id", StringType(), True),
+    StructField("is_weekend", BooleanType(), True),
+    StructField("year", IntegerType(), True),
+    StructField("month", IntegerType(), True)
+])
+
+gold_traffic_realtime_schema = StructType([
+    StructField("link_id", StringType(), False),
+    StructField("street_name", StringType(), True),
+    StructField("borough", StringType(), True), # <--- קיים
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("current_speed", FloatType(), True),
+    StructField("travel_time", IntegerType(), True),
+    StructField("traffic_status", StringType(), True),
+    StructField("event_time", TimestampType(), True),
+    StructField("last_updated", TimestampType(), True)
+])
+
+gold_traffic_analytics_schema = StructType([
+    StructField("link_id", StringType(), False),
+    StructField("street_name", StringType(), True),
+    StructField("borough", StringType(), True), # <--- קיים
+    StructField("day_name", StringType(), True),
+    StructField("is_weekend", BooleanType(), True),
+    StructField("avg_speed_daily", FloatType(), True),
+    StructField("peak_congestion_hour", IntegerType(), True),
+    StructField("reliability_score", StringType(), True),
+    StructField("total_readings", IntegerType(), True),
+    StructField("last_updated", TimestampType(), True)
 ])
 
 bronze_crashes_schema = StructType([
