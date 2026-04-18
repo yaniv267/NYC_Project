@@ -76,7 +76,7 @@
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, concat, lit, date_format,month,year
-from nyc_schema import silver_crashes_schema # וודא שהסכימה כאן תואמת לעמודות הסופיות
+from nyc_schema import silver_crashes_schema 
 
 # 1. יצירת Spark Session
 spark = SparkSession.builder \

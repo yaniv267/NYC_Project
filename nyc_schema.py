@@ -204,7 +204,6 @@ silver_address_schema = StructType([
     StructField("longitude", DoubleType(), True),
     StructField("latitude", DoubleType(), True)
 ])
-
 silver_violation_codes_schema = StructType([
     StructField("violation_code", StringType(), True),
     StructField("violation_description", StringType(), True),
@@ -313,25 +312,23 @@ silver_crashes_schema = StructType([
     StructField("ingestion_time", TimestampType(), True)
 ])
 
+
+
 gold_crashes_schema = StructType([
     StructField("street_name", StringType(), True),
     StructField("borough", StringType(), True),
-
-    StructField("total_crashes", IntegerType(), True),
-    StructField("total_injured", IntegerType(), True),
-    StructField("total_killed", IntegerType(), True),
-
+    StructField("total_crashes", LongType(), True),
+    StructField("total_injured", LongType(), True),
+    StructField("total_killed", LongType(), True),
     StructField("main_cause", StringType(), True),
-
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
     StructField("crash_pct", DoubleType(), True),
     StructField("danger_rank", IntegerType(), True),
     StructField("safety_label", StringType(), True),
-
-    # 🆕 TIME INSIGHTS
     StructField("first_crash_date", TimestampType(), True),
     StructField("last_crash_date", TimestampType(), True),
     StructField("unique_crash_days", LongType(), True),
     StructField("sample_day_of_week", StringType(), True),
-
     StructField("last_updated", TimestampType(), True)
 ])

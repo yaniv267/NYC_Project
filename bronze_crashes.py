@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, to_date, year, month, current_timestamp
-from nyc_schema import bronze_crashes_schema
 
+from nyc_schema import bronze_crashes_schema
 # --- CONFIGURATION ---
 KAFKA_BOOTSTRAP_SERVERS = "course-kafka:9093"
 KAFKA_TOPIC = "nyc_crashes_stream"
@@ -49,6 +49,7 @@ df_final = df_parsed \
         .withColumn("event_year", year(col("event_date"))) \
         .withColumn("event_month", month(col("event_date")))
 df_final.printSchema()
+
     # 5. כתיבת הסטרים ל-Minio בפורמט Parquet
 query = df_final.writeStream \
         .format("parquet") \
