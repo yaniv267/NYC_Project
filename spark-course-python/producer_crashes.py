@@ -1,16 +1,16 @@
 import requests, json, time
 from kafka import KafkaProducer
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 
 # ==========================================
 # CONFIGURATION - NYC CRASHES MAINTENANCE
 # ==========================================
 APP_TOKEN = "gdLWTLhefvaSPLJI2AV4lTv4m"
 KAFKA_BROKER = "localhost:9092"
-TOPIC_NAME = "nyc_crashes_bronze"
+TOPIC_NAME = "nyc_crashes_stream"
 
 producer = KafkaProducer(
-    bootstrap_servers=KAFKA_BROKER,
+    bootstrap_servers=['course-kafka:9093'],
     value_serializer=lambda v: json.dumps(v).encode("utf-8"),
     acks='all'
 )
@@ -19,8 +19,9 @@ print(f"🚀 Crash Maintenance Producer is LIVE. Monitoring NYC for new accident
 
 while True:
     try:
-        # 1. לקיחת חלון זמן של יומיים אחורה כדי למנוע חורים במידע
-        start_date = (datetime.now(UTC) - timedelta(days=2)).strftime('%Y-%m-%d')
+        # 1. לקיחת חלון זמן של עמות הזמן שמוגדר אחורה כדי למנוע חורים במידע
+#        start_date = (datetime.now(UTC) - timedelta(days=14)).strftime('%Y-%m-%d')
+        start_date = (datetime.now(timezone.utc) - timedelta(days=14)).strftime('%Y-%m-%d')
 
         # 2. שאילתה ל-API (מביאה את ה-2000 הכי חדשים מהיומיים האחרונים)
         url = (
@@ -36,7 +37,8 @@ while True:
         if data and isinstance(data, list):
             for r in data:
                 # Metadata לשכבת ה-Bronze
-                r['ingested_at'] = datetime.now(UTC).isoformat()
+#                r['ingested_at'] = datetime.now(UTC).isoformat()
+                r['ingested_at'] = datetime.now(timezone.utc).isoformat()
 
                 # שימוש ב-collision_id כמפתח (מבטיח שספארק ינקה כפילויות בקלות)
                 crash_id = str(r.get('collision_id', 'unknown'))
@@ -51,5 +53,7 @@ while True:
         print(f"❌ Error during sync: {e}")
 
     # 3. הולך לישון לשעה. תאונות ב-API לא מתעדכנות כל דקה.
-    print("😴 Sleeping for 1 hour...")
-    time.sleep(3600)
+    #print("😴 Sleeping for 1 hour...")
+    #time.sleep(3600)
+    print("😴 Sleeping for 5 minutes...")
+    time.sleep(300)

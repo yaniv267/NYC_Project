@@ -160,8 +160,8 @@ spark = SparkSession.builder \
     .appName("bronze_nyc_addresses") \
     .config("spark.memory.offHeap.enabled", "true") \
     .config("spark.memory.offHeap.size", "2g") \
-    .config("spark.driver.memory", "4g") \
-    .config("spark.executor.memory", "4g") \
+    .config("spark.driver.memory", "2g") \
+    .config("spark.executor.memory", "2g") \
     .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
     .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
     .config("spark.hadoop.fs.s3a.access.key", "minioadmin") \

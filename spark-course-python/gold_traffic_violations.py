@@ -96,8 +96,7 @@ gold_final = (silver_df
          .when(F.col("violation_county").isin("BX", "Bronx"), "Bronx")
          .otherwise("Other").alias("borough"),
         F.current_timestamp().alias("last_updated"),
-        F.sha2(F.concat_ws("_", F.col("street_name"), F.col("violation_code"), F.col("end_date")), 256).alias("doc_id")
-
+        F.sha2(F.concat_ws("_", F.col("borough"), F.col("street_name"), F.col("violation_code"), F.col("end_date")), 256).alias("doc_id")
     )
 )
 # 7. בדיקת תוצאות
