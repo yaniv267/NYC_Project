@@ -20,11 +20,10 @@ spark.sparkContext.setLogLevel("WARN")
 # =========================
 # 2. CONFIGURATION & URLS
 # =========================
-# הקישור הרשמי ל-Dump המלא של העירייה
+
 csv_url = "https://data.cityofnewyork.us/api/views/uf93-f8nk/rows.csv?accessType=DOWNLOAD"
 
-# שימוש בנתיב זמני גנרי (עובד גם בלינוקס/דוקר וגם בווינדוס)
-# זה מבטיח שהקוד ירוץ על כל מחשב או שרת
+
 temp_dir = "/tmp" if os.name != 'nt' else os.environ.get('TEMP', 'C:\\temp')
 local_csv_file = os.path.join(temp_dir, "nyc_addresses_full_dump.csv")
 
@@ -47,21 +46,21 @@ except Exception as e:
 # =========================
 # 4. LOAD TO SPARK & WRITE TO MINIO
 # =========================
-print("💾 Loading CSV to Spark and writing to Bronze layer in MinIO...")
+print("Loading CSV to Spark and writing to Bronze layer in MinIO...")
 
-# קריאת הקובץ הזמני
+
 df_raw = spark.read.csv(local_csv_file, header=True, inferSchema=True)
 
-# העלאה ל-MinIO בפורמט Parquet
+
 df_raw.repartition(1).write.mode("overwrite").parquet(output_path)
 
 total_rows = df_raw.count()
-print(f"🏁 Bronze Layer Complete. Total records written: {total_rows}")
+print(f"Bronze Layer Complete. Total records written: {total_rows}")
 
 # =========================
 # 5. CLEANUP
 # =========================
-# מחיקת הקובץ הזמני מהשרת כדי למנוע הצטברות זבל
+
 if os.path.exists(local_csv_file):
     os.remove(local_csv_file)
     print("🧹 Temporary files cleaned up.")

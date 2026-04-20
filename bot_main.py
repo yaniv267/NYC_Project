@@ -1,196 +1,12 @@
-# import telebot
-# import psycopg2
-# from telebot import types
-# from datetime import datetime
-
-# # --- CONFIGURATION ---
-# TOKEN = "7116435990:AAE23VMeB2d0yWR02GBYCaWDSN_Pi1K0uPk"
-# bot = telebot.TeleBot(TOKEN)
-
-# DB_CONFIG = {
-#     "dbname": "nyc_data", 
-#     "user": "postgres", 
-#     "password": "postgres",
-#     "host": "postgres", 
-#     "port": "5432"
-# }
-
-# def get_connection():
-#     return psycopg2.connect(**DB_CONFIG)
-
-# def get_map_link(street, borough):
-#     """Generates an official and reliable Google Maps search link"""
-#     clean_street = street.replace(' ', '+')
-#     clean_borough = borough.replace(' ', '+') if borough else "NYC"
-#     # Official Google Maps Search URL
-#     return f"https://www.google.com/maps/search/?api=1&query={clean_street}+{clean_borough}+New+York"
-
-# # --- DATA FETCHING FUNCTIONS ---
-
-# def fetch_311_detailed_report():
-#     try:
-#         conn = get_connection(); cur = conn.cursor()
-#         cur.execute("SELECT MIN(data_time), MAX(data_time), SUM(complaint_count) FROM gold_311_stats")
-#         min_d, max_d, city_total = cur.fetchone()
-
-#         cur.execute("""
-#             SELECT DISTINCT ON (borough) borough, complaint_type, SUM(complaint_count) as vol, MAX(peak_hour)
-#             FROM gold_311_stats
-#             GROUP BY borough, complaint_type
-#             ORDER BY borough, vol DESC
-#         """)
-#         borough_issues = cur.fetchall()
-
-#         cur.execute("""
-#             WITH RankedStreets AS (
-#                 SELECT borough, street_name, complaint_type, SUM(complaint_count) as street_sum,
-#                        MAX(peak_hour) as peak_h,
-#                        ROW_NUMBER() OVER(PARTITION BY borough ORDER BY SUM(complaint_count) DESC) as rank
-#                 FROM gold_311_stats
-#                 WHERE street_name NOT IN ('UNKNOWN', '', 'UNSPECIFIED')
-#                 GROUP BY borough, street_name, complaint_type
-#             )
-#             SELECT borough, street_name, complaint_type, street_sum, peak_h
-#             FROM RankedStreets WHERE rank <= 2
-#             ORDER BY borough, street_sum DESC
-#         """)
-#         top_streets = cur.fetchall()
-#         cur.close(); conn.close()
-#         return min_d, max_d, city_total, borough_issues, top_streets
-#     except: return None
-
-# def fetch_traffic_safety_report():
-#     try:
-#         conn = get_connection(); cur = conn.cursor()
-#         cur.execute("SELECT MIN(data_time), MAX(data_time) FROM gold_traffic_safety_stats")
-#         min_ts, latest_ts = cur.fetchone()
-        
-#         # Busiest streets with speed and individual update time
-#         cur.execute("""
-#             SELECT link_name, MAX(borough), AVG(speed), MAX(data_time) 
-#             FROM gold_traffic_safety_stats 
-#             WHERE data_time >= %s - INTERVAL '1 hour' 
-#             GROUP BY link_name ORDER BY 3 ASC LIMIT 3
-#         """, (latest_ts,))
-#         busiest = cur.fetchall()
-        
-#         # Dangerous streets with Accident timestamp added
-#         cur.execute("""
-#             SELECT DISTINCT ON (total_crashes) link_name, borough, total_crashes, total_killed, total_injured, data_time 
-#             FROM gold_traffic_safety_stats WHERE total_crashes > 0 
-#             ORDER BY total_crashes DESC LIMIT 3
-#         """)
-#         dangerous = cur.fetchall()
-#         cur.close(); conn.close()
-#         return min_ts, latest_ts, busiest, dangerous
-#     except: return None
-
-# # --- MESSAGE HANDLERS ---
-
-# @bot.message_handler(commands=['start'])
-# def send_welcome(message):
-#     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-#     markup.add(types.KeyboardButton('🚨 Traffic & Safety'), types.KeyboardButton('🧹 311 City Pulse'))
-#     markup.add(types.KeyboardButton('📸 Camera Summary'), types.KeyboardButton('🚗 Parking Summary'))
-#     markup.add(types.KeyboardButton('🔍 Search Street'))
-    
-#     welcome_text = (
-#         "👋 *Welcome to the NYC Smart City Bot!*\n\n"
-#         "I am your real-time guide to New York City's data.\n\n"
-#         "*What can I do for you?*\n"
-#         "• 🚨 *Traffic & Safety:* Live speeds and accident reports.\n"
-#         "• 🧹 *311 City Pulse:* Neighborhood complaints and peak hours.\n"
-#         "• 📸 *Enforcement:* Camera and Parking ticket summaries.\n\n"
-#         "💡 *Pro Tip:* You can also just type any street name (e.g., *Broadway*) to get a full combined report!\n\n"
-#         "*Select an option below to start:*"
-#     )
-#     bot.send_message(message.chat.id, welcome_text, parse_mode='Markdown', reply_markup=markup)
-
-# @bot.message_handler(func=lambda message: True)
-# def handle_all_messages(message):
-#     text = message.text
-
-#     # --- 311 BUTTON ---
-#     if text == '🧹 311 City Pulse':
-#         data = fetch_311_detailed_report()
-#         if not data:
-#             bot.send_message(message.chat.id, "❌ No 311 data available."); return
-#         min_d, max_d, total, b_issues, s_issues = data
-#         res = "🧹 *311 CITY PULSE - DETAILED REPORT*\n"
-#         res += f"📅 *Period:* `{min_d} to {max_d}`\n\n"
-#         res += "🏢 *TOP ISSUE PER BOROUGH:*\n"
-#         for b in b_issues:
-#             peak = f"{int(b[3]):02d}:00" if b[3] is not None else "N/A"
-#             res += f"• *{b[0]}:* {b[1]} (Peak: {peak})\n"
-#         res += "\n📍 *TOP 2 STREETS PER BOROUGH:*\n"
-#         current_b = ""
-#         for s in s_issues:
-#             street_peak = f"{int(s[4]):02d}:00" if s[4] is not None else "N/A"
-#             if s[0] != current_b:
-#                 current_b = s[0]; res += f"\n🏙 *{current_b}*\n"
-#             res += f" ↳ *{s[1]}* ({s[2]})\n    Count: `{int(s[3])}` | *Peak Hour: {street_peak}*\n    🔗 [Map]({get_map_link(s[1], s[0])})\n"
-#         bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
-
-#     # --- TRAFFIC BUTTON ---
-#     elif text == '🚨 Traffic & Safety':
-#         data = fetch_traffic_safety_report()
-#         if not data:
-#             bot.send_message(message.chat.id, "❌ Traffic data unavailable."); return
-#         min_ts, ts, busiest, dangerous = data
-#         res = f"🏎 *TRAFFIC & SAFETY REPORT*\n📅 `{min_ts.strftime('%d/%m/%Y')} - {ts.strftime('%d/%m/%Y')}`\n\n🔥 *Busiest Streets:*\n"
-#         for b in busiest:
-#             upd = b[3].strftime('%H:%M') if b[3] else "N/A"
-#             res += f"• *{b[0]}*: `{b[2]:.1f} mph` (Updated: {upd})\n"
-        
-#         res += "\n⚠️ *Dangerous (Accidents):*\n"
-#         for d in dangerous:
-#             # d[5] is the data_time for the last accident
-#             last_acc = d[5].strftime('%d/%m %H:%M') if d[5] else "N/A"
-#             res += f"• *{d[0]}* ({d[1]})\n"
-#             res += f"  ↳ 💥 `{int(d[2])}` Crashes | Fatalities: `{int(d[3])}`\n"
-#             res += f"  ↳ 📅 *Last Accident:* `{last_acc}`\n"
-#             res += f"  ↳ 🔗 [View Map]({get_map_link(d[0], d[1])})\n"
-#         bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
-
-#     # --- SEARCH STREET ---
-#     elif text == '🔍 Search Street':
-#         bot.send_message(message.chat.id, "Please type a street name (e.g., Broadway):")
-
-#     elif text not in ['📸 Camera Summary', '🚗 Parking Summary']:
-#         try:
-#             conn = get_connection(); cur = conn.cursor()
-#             cur.execute("SELECT complaint_type, SUM(complaint_count), MAX(peak_hour), MAX(borough) FROM gold_311_stats WHERE street_name ILIKE %s GROUP BY complaint_type ORDER BY 2 DESC LIMIT 1", (f"%{text}%",))
-#             c311 = cur.fetchone()
-#             # Added injured/killed and timestamp for street search
-#             cur.execute("SELECT speed, total_crashes, borough, data_time, total_injured, total_killed FROM gold_traffic_safety_stats WHERE link_name ILIKE %s ORDER BY data_time DESC LIMIT 1", (f"%{text}%",))
-#             traf = cur.fetchone()
-            
-#             if not c311 and not traf:
-#                 bot.send_message(message.chat.id, f"🔍 No data found for '{text}'.")
-#             else:
-#                 borough = (c311[3] if c311 else traf[2]); res = f"📍 *REPORT: {text.upper()}*\n🏙 Borough: `{borough}`\n🔗 [Open in Google Maps]({get_map_link(text, borough)})\n\n"
-#                 if c311:
-#                     peak = f"{int(c311[2]):02d}:00" if c311[2] is not None else "N/A"
-#                     res += f"🧹 *311:* `{c311[0]}`\n• Total: `{int(c311[1])}` | Peak: `{peak}`\n\n"
-#                 if traf:
-#                     last_event = traf[3].strftime('%d/%m %H:%M') if traf[3] else "N/A"
-#                     res += f"🏎 *Traffic:* `{traf[0]:.1f} mph` (Updated: {last_event})\n"
-#                     res += f"• Accidents: `{int(traf[1])}` (🤕{int(traf[4])} / 💀{int(traf[5])})\n"
-#                 bot.send_message(message.chat.id, res, parse_mode='Markdown')
-#             cur.close(); conn.close()
-#         except: pass
-
-# if __name__ == "__main__":
-#     print("🚀 NYC Bot is LIVE with Accident Timestamps...")
-#     bot.polling(none_stop=True)
-
 import telebot
 import psycopg2
 from telebot import types
-import pytz
 from datetime import datetime
 
-# --- CONFIGURATION ---
+# ==========================================
+# 1. INITIAL CONFIGURATION & BOT SETUP
+# ==========================================
+
 TOKEN = "7116435990:AAE23VMeB2d0yWR02GBYCaWDSN_Pi1K0uPk"
 bot = telebot.TeleBot(TOKEN)
 
@@ -201,151 +17,340 @@ DB_CONFIG = {
     "host": "postgres", 
     "port": "5432"
 }
-
+# ==========================================
+# 2. DATABASE & UTILITY FUNCTIONS
+# ==========================================
 def get_connection():
     return psycopg2.connect(**DB_CONFIG)
 
 def get_map_link(lat, lon):
-    """Generates a Google Maps link based on coordinates"""
-    return f"https://www.google.com/maps?q={lat},{lon}"
+    """Generates a Google Maps link using coordinates."""
+    if lat and lon:
+        return f"https://www.google.com/maps?q={lat},{lon}"
+    return None
 
-# --- DATA FETCHING FUNCTIONS ---
-
-def fetch_311_summary():
-    try:
-        conn = get_connection(); cur = conn.cursor()
-        cur.execute("""
-            SELECT borough, complaint_type, complaint_count, intensity_level, hour, latest_incident 
-            FROM gold_311_stats 
-            ORDER BY latest_incident DESC LIMIT 5
-        """)
-        data = cur.fetchall()
-        cur.close(); conn.close()
-        return data
-    except: return []
-
-def fetch_safety_summary():
-    try:
-        conn = get_connection(); cur = conn.cursor()
-        cur.execute("""
-            SELECT street_name, borough, total_crashes, safety_label, last_updated 
-            FROM gold_crash_stats 
-            ORDER BY total_crashes DESC LIMIT 5
-        """)
-        data = cur.fetchall()
-        cur.close(); conn.close()
-        return data
-    except: return []
-
-# --- MESSAGE HANDLERS ---
+# ==========================================
+# 3. COMMAND HANDLERS (START & WELCOME)
+# ==========================================
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    markup.add(types.KeyboardButton('🚨 Traffic & Safety'), types.KeyboardButton('🧹 311 City Pulse'))
-    markup.add(types.KeyboardButton('🔍 Search Street'))
+    markup.add(
+        types.KeyboardButton('🚦 Live Traffic'), 
+        types.KeyboardButton('🧹 311 City Pulse'), 
+        types.KeyboardButton('🎫 Violations Report'), 
+        types.KeyboardButton('💥 Crash Report'),
+        types.KeyboardButton('🔍 Search Street')
+    )
     
     welcome_text = (
-        "👋 *Welcome to the NYC Smart City Bot!*\n\n"
-        "I provide real-time insights from NYC's data layers.\n\n"
-        "• 🚨 *Traffic & Safety:* Accident analysis and danger zones.\n"
-        "• 🧹 *311 City Pulse:* Neighborhood complaints and intensity.\n"
-        "• 🔍 *Search Street:* Detailed report for any location.\n\n"
-        "*Select an option below:*"
+        "👋 *Welcome to NYC Smart City Bot!*\n\n"
+        "Data-driven insights for New York City.\n\n"
+        "• 🚦 *Traffic:* Current speeds & congestion.\n"
+        "• 🧹 *311 Pulse:* Neighborhood complaints.\n"
+        "• 🎫 *Violations:* Risk analysis (Camera vs. Manual).\n"
+        "• 🔍 *Search:* Street-level survival guide.\n"
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode='Markdown', reply_markup=markup)
+# ==========================================
+# 4. VIOLATIONS ANALYTICS HANDLER
+# ==========================================
+@bot.message_handler(func=lambda message: message.text == '🎫 Violations Report')
+def handle_violations_report(message):
+    try:
+        conn = get_connection(); cur = conn.cursor()
+        query = """
+        WITH Stats AS (
+            SELECT 
+                borough,
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE is_camera = 'Yes') as cam_count,
+                COUNT(*) FILTER (WHERE is_camera = 'No') as manual_count,
+                issue_day_name,
+                time_of_day,
+                AVG(lat) as lat,
+                AVG(lon) as lon,
+                MAX(last_updated) as last_sync,
+                RANK() OVER (PARTITION BY borough ORDER BY COUNT(*) DESC) as rnk
+            FROM gold_traffic_violations
+            GROUP BY borough, issue_day_name, time_of_day
+        )
+        SELECT 
+            borough, total, cam_count, manual_count, 
+            issue_day_name, time_of_day,
+            (cam_count::float / total * 100) as cam_pct,
+            lat, lon,last_sync
+        FROM Stats WHERE rnk = 1
+        ORDER BY total DESC LIMIT 5
+        """
+        cur.execute(query)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
 
-# --- 🔍 SEARCH STREET FLOW ---
+        res = "🎫 *NYC VIOLATIONS SUMMARY*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        for row in rows:
+            map_url = get_map_link(row[7], row[8])
+            res += f"🏙️ *{row[0]}*\n"
+            res += f"↳ 📸 Camera: `{row[2]}` ({row[6]:.1f}%) | 👮 Manual: `{row[3]}`\n"
+            res += f"↳ 🗓️ Peak Day: `{row[4]}` in the `{row[5]}`\n"
+            res += f"↳ Total Tickets: `{row[1]}`\n"
+            if map_url: res += f"🔗 [View Borough Hotspot]({map_url})\n"
+            res += "────────────────────\n"
+        
+        bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
+    except:
+        bot.send_message(message.chat.id, "❌ Error fetching violations.")
+
+# ==========================================
+# 5. CRASH REPORTING HANDLER
+# ==========================================
+
+@bot.message_handler(func=lambda message: message.text == '💥 Crash Report')
+def handle_crashes_report(message):
+    try:
+        conn = get_connection(); cur = conn.cursor()
+        query = """
+        WITH CrashStats AS (
+            SELECT 
+                borough,
+                SUM(total_crashes) as total_c,
+                SUM(total_injured) as total_i,
+                SUM(total_killed) as total_k,
+                main_cause,
+                AVG(latitude) as lat,
+                AVG(longitude) as lon,
+                MAX(last_updated) as last_sync,
+                RANK() OVER (PARTITION BY borough ORDER BY SUM(total_crashes) DESC) as rnk
+            FROM gold_crash_stats
+            WHERE borough IS NOT NULL AND borough != ''
+            GROUP BY borough, main_cause
+        )
+        SELECT 
+            borough, total_c, total_i, total_k, 
+            main_cause, lat, lon, last_sync
+        FROM CrashStats WHERE rnk = 1
+        ORDER BY total_c DESC LIMIT 5
+        """
+        cur.execute(query)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+
+        res = "💥 *NYC CRASHES SUMMARY*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        for row in rows:
+            sync_time = row[7].strftime('%d/%m/%Y %H:%M') if row[7] else "N/A"
+            map_url = get_map_link(row[5], row[6])
+            
+            res += f"🏙️ *{row[0]}*\n"
+            res += f"↳ 🚗 Total Crashes: `{row[1]}`\n"
+            res += f"↳ 🏥 Injuries: `{row[2]}` | ⚰️ Killed: `{row[3]}`\n"
+            res += f"↳ ⚠️ Main Cause: `{row[4]}`\n"
+            res += f"↳ 🕒 Last Sync: `{sync_time}`\n"
+            
+            if map_url:
+                res += f"🔗 [View Crash Hotspot]({map_url})\n"
+            res += "────────────────────\n"
+
+        bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
+    except Exception as e:
+        bot.send_message(message.chat.id, "❌ Error fetching crash data.")
+
+# ==========================================
+# 6. REAL-TIME TRAFFIC MONITORING
+# ==========================================
+
+@bot.message_handler(func=lambda message: message.text == '🚦 Live Traffic')
+def handle_live_traffic(message):
+    try:
+        conn = get_connection(); cur = conn.cursor()
+        cur.execute("""
+            SELECT street_name, borough, current_speed, traffic_status, last_updated, latitude, longitude ,event_time
+            FROM gold_traffic_realtime 
+            WHERE traffic_status LIKE '%Heavy%' ORDER BY current_speed ASC LIMIT 3
+        """)
+        rows = cur.fetchall()
+        cur.close(); conn.close()
+        
+        res = "🚦 *HEAVY TRAFFIC HOTSPOTS*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        for row in rows:
+            event_time_formatted = row[7].strftime('%H:%M') if row[7] else "N/A"
+            map_url = get_map_link(row[5], row[6])
+            res += f"📍 *{row[0]}* ({row[1]})\n"
+            res += f"↳ Status: {row[3]} | Speed: `{row[2]} mph`\n"
+            res += f"🕒 *Measured At:* `{event_time_formatted}`\n"
+            if map_url: res += f"🔗 [Google Maps]({map_url})\n"
+            res += "\n"
+        bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
+    except:
+        bot.send_message(message.chat.id, "❌ Error fetching traffic.")
+
+# ==========================================
+# 7. 311 CITY COMPLAINTS PULSE
+# ==========================================
+
+@bot.message_handler(func=lambda message: message.text == '🧹 311 City Pulse')
+def handle_311_pulse(message):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # שאילתה שמתאימה למבנה השדות שלך:
+        # 1. borough, 2. complaint_type, 3. year, 4. month, 5. day_name, 6. complaint_count, 
+        # 7. latitude, 8. longitude, 9. peak_hour
+        query = """
+            SELECT DISTINCT ON (borough)
+                borough, 
+                complaint_type, 
+                complaint_count, 
+                peak_hour, 
+                latitude, 
+                longitude
+            FROM gold_311_stats
+            WHERE borough IS NOT NULL 
+              AND borough != ''
+            ORDER BY borough, complaint_count DESC
+        """
+        
+        cur.execute(query)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        if not rows:
+            bot.send_message(message.chat.id, "📭 No 311 data found.")
+            return
+
+        res = "🧹 *NYC 311 - TOP COMPLAINTS BY BOROUGH*\n━━━━━━━━━━━━━━━━━━━━\n\n"
+        for row in rows:
+            # מיפוי השדות לפי הסדר בשאילתה החדשה:
+            boro = row[0]
+            complaint = row[1]
+            count = int(row[2]) if row[2] else 0
+            peak = int(row[3]) if row[3] else 0
+            lat = row[4]
+            lon = row[5]
+            
+            map_url = get_map_link(lat, lon)
+            
+            res += f"🏙️ *{boro}*\n"
+            res += f"↳ Issue: `{complaint}`\n"
+            res += f"↳ Reports: `{count:,}`\n"
+            res += f"↳ Peak Hour: `{peak:02d}:00`\n"
+            if map_url:
+                res += f"🔗 [Area Map]({map_url})\n"
+            res += "────────────────────\n"
+            
+        bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
+
+    except Exception as e:
+        print(f"DEBUG 311 ERROR: {e}")
+        bot.send_message(message.chat.id, "❌ Error: Metadata mismatch in 311 table.")
+
+# ==========================================
+# 8. STREET-LEVEL UNIFIED SEARCH
+# ==========================================
 
 @bot.message_handler(func=lambda message: message.text == '🔍 Search Street')
 def ask_for_street(message):
-    msg = bot.send_message(message.chat.id, "📍 *Please enter the desired street name:*", parse_mode='Markdown')
+    msg = bot.send_message(message.chat.id, "📍 *Enter street keywords (e.g., 'Broadway'):*", parse_mode='Markdown')
     bot.register_next_step_handler(msg, process_street_search)
-
 def process_street_search(message):
-    street_query = message.text.strip()
+    user_input = message.text.strip()
+    if not user_input:
+        bot.send_message(message.chat.id, "Please enter a valid street name.")
+        return
+
+    # חיפוש מדויק ללא תלות באותיות גדולות/קטנות
+    params = [user_input.upper()]
+    where_clause = "UPPER(street_name) = %s"
+
     try:
         conn = get_connection(); cur = conn.cursor()
         
-        # 1. חיפוש נתוני תאונות
-        cur.execute("""
-            SELECT borough, total_crashes, total_injured, total_killed, main_cause, safety_label, last_updated 
-            FROM gold_crash_stats 
-            WHERE street_name ILIKE %s LIMIT 1
-        """, (f"%{street_query}%",))
-        crash_data = cur.fetchone()
-
-        # 2. חיפוש נתוני 311
-        # הערה: בגלל שהגולד של 311 הוא לפי רובע, אנחנו מחפשים התאמה לרובע של הרחוב אם נמצא
-        target_borough = crash_data[0] if crash_data else "%"
-        cur.execute("""
-            SELECT complaint_type, complaint_count, intensity_level, hour, latest_incident 
+     
+        cur.execute(f"""
+            SELECT DISTINCT street_name, borough 
             FROM gold_311_stats 
-            WHERE borough ILIKE %s ORDER BY complaint_count DESC LIMIT 1
-        """, (target_borough,))
-        complaint_data = cur.fetchone()
+            WHERE ({where_clause}) AND borough IS NOT NULL AND borough != 'None' AND borough != ''
+            UNION
+            SELECT DISTINCT street_name, borough 
+            FROM gold_traffic_violations 
+            WHERE ({where_clause}) AND borough IS NOT NULL AND borough != 'None' AND borough != ''
+            LIMIT 5
+        """, params * 2)
+        
+        street_combos = cur.fetchall()
 
-        if not crash_data and not complaint_data:
-            bot.send_message(message.chat.id, f"❌ No data found for *{street_query}*.", parse_mode='Markdown')
+        if not street_combos:
+            bot.send_message(message.chat.id, f"❌ No exact match found for: '{user_input.upper()}'")
             return
 
-        res = f"📍 *STREET REPORT: {street_query.upper()}*\n"
-        res += "━━━━━━━━━━━━━━━━━━━━\n\n"
+        for s_name, boro in street_combos:
+            specific_params = [s_name, boro]
+            match_cond = "street_name = %s AND borough = %s"
 
-        if crash_data:
-            boro, crashes, injured, killed, cause, label, updated = crash_data
-            res += f"🚨 *Safety Status:* {label}\n"
-            res += f"• Borough: `{boro}`\n"
-            res += f"• Total Crashes: `{crashes}`\n"
-            res += f"• Injuries: `{injured}` | Fatalities: `{killed}`\n"
-            res += f"• Main Cause: `{cause}`\n"
-            res += f"🕒 *Sync:* `{updated.strftime('%Y-%m-%d %H:%M')}`\n\n"
+           
+            cur.execute(f"SELECT current_speed, traffic_status, event_time, latitude, longitude FROM gold_traffic_realtime WHERE {match_cond} LIMIT 1", specific_params)
+            traf = cur.fetchone()
 
-        if complaint_data:
-            ctype, count, intensity, peak, latest = complaint_data
-            res += f"🧹 *311 Pulse:* {intensity}\n"
-            res += f"• Top Issue: `{ctype}`\n"
-            res += f"• Count: `{count}` reports\n"
-            res += f"• Peak Hour: `{peak}:00`\n"
-            res += f"🕒 *Last Report:* `{latest.strftime('%H:%M')}`\n"
+          
+            cur.execute(f"SELECT complaint_type, complaint_count, peak_hour, latitude, longitude FROM gold_311_stats WHERE {match_cond} ORDER BY complaint_count DESC LIMIT 1", specific_params)
+            c311 = cur.fetchone()
 
-        res += "\n━━━━━━━━━━━━━━━━━━━━"
-        bot.send_message(message.chat.id, res, parse_mode='Markdown')
+          
+            cur.execute(f"""
+                SELECT violation_desc, tickets_count, risk_level, is_camera, lat, lon 
+                FROM gold_traffic_violations 
+                WHERE {match_cond} 
+                ORDER BY tickets_count DESC LIMIT 1
+            """, specific_params)
+            violation = cur.fetchone()
+
+            if not any([traf, c311, violation]):
+                continue
+
+            
+            final_lat, final_lon = None, None
+            if traf and traf[3]: final_lat, final_lon = traf[3], traf[4]
+            elif c311 and c311[3]: final_lat, final_lon = c311[3], c311[4]
+            elif violation and violation[4]: final_lat, final_lon = violation[4], violation[5]
+
+            map_url = get_map_link(final_lat, final_lon)
+
+           
+            res = f"📊 *STREET REPORT: {s_name.upper()}*\n"
+            res += f"🏙️ *Borough:* `{boro}`\n"
+            res += "━━━━━━━━━━━━━━━━━━━━\n\n"
+            
+            if traf:
+                time_str = traf[2].strftime('%H:%M') if traf[2] else "N/A"
+                res += f"🚗 *TRAFFIC*\n• Speed: `{traf[0]} mph` | `{traf[1]}`\n• At: `{time_str}`\n\n"
+            
+            if c311:
+                peak = f"{int(c311[2]):02d}:00" if c311[2] is not None else "N/A"
+                res += f"🧹 *311 PULSE*\n• Issue: `{c311[0]}` ({int(c311[1])})\n• Peak: `{peak}`\n\n"
+            
+            if violation:
+                cam_status = "📸 Camera Detected" if violation[3] == 'Yes' else "👮 Manual Enforcement"
+                res += f"🎫 *VIOLATIONS*\n"
+                res += f"• Top: `{violation[0]}`\n"
+                res += f"• Risk: `{violation[2]}`\n"
+                res += f"• Type: `{cam_status}`\n\n"
+            
+            if map_url:
+                res += f"🔗 [View Street on Map]({map_url})\n\n"
+                
+            res += "━━━━━━━━━━━━━━━━━━━━"
+            bot.send_message(message.chat.id, res, parse_mode='Markdown', disable_web_page_preview=True)
         
         cur.close(); conn.close()
+
     except Exception as e:
-        bot.send_message(message.chat.id, "❌ Error connecting to data services.")
         print(f"Search Error: {e}")
-
-# --- BUTTON HANDLERS ---
-
-@bot.message_handler(func=lambda message: message.text == '🧹 311 City Pulse')
-def handle_311(message):
-    data = fetch_311_summary()
-    if not data:
-        bot.send_message(message.chat.id, "📭 No 311 data found."); return
-    
-    res = "🧹 *LATEST 311 ACTIVITY*\n\n"
-    for row in data:
-        res += f"🏢 *{row[0]}* | {row[3]}\n"
-        res += f"↳ {row[1]}: `{row[2]}` reports\n"
-        res += f"↳ Peak: `{row[4]}:00` | Latest: `{row[5].strftime('%H:%M')}`\n\n"
-    bot.send_message(message.chat.id, res, parse_mode='Markdown')
-
-@bot.message_handler(func=lambda message: message.text == '🚨 Traffic & Safety')
-def handle_traffic(message):
-    data = fetch_safety_summary()
-    if not data:
-        bot.send_message(message.chat.id, "📭 No safety data found."); return
-    
-    res = "🚨 *TRAFFIC SAFETY SUMMARY*\n\n"
-    for row in data:
-        res += f"📍 *{row[0]}* ({row[1]})\n"
-        res += f"↳ {row[3]}\n"
-        res += f"↳ Crashes: `{row[2]}`\n"
-        res += f"🕒 Updated: `{row[4].strftime('%d/%m %H:%M')}`\n\n"
-    bot.send_message(message.chat.id, res, parse_mode='Markdown')
-
+        bot.send_message(message.chat.id, "❌ Error fetching data during search.")
+# ==========================================
+# 9. MAIN EXECUTION
+# ==========================================
 if __name__ == "__main__":
-    print("🚀 NYC Smart City Bot is LIVE...")
+    print("🚀 Bot is LIVE with Borough-wide 311 and Unified Street Search...")
     bot.polling(none_stop=True)

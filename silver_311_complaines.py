@@ -78,7 +78,10 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, DoubleType
 from nyc_schema import silver_311_schema
 
-# 1. יצירת Spark Session
+# =========================
+# 2. INITIALIZE SPARK SESSION
+# =========================
+
 spark = (SparkSession.builder
     .appName("NYC_311_Silver_Final")
     .config("spark.jars.packages", 
@@ -93,23 +96,25 @@ spark = (SparkSession.builder
 
 spark.sparkContext.setLogLevel("WARN")
 
-# 2. קריאה מה-Bronze
+# =========================
+# 3. READ RAW DATA FROM BRONZE
+# =========================
+
 print("📖 Reading 311 Bronze data...")
 df_bronze = spark.read.parquet("s3a://spark/bronze/311_complaints/")
 df_bronze.select("created_date").show(20, False)
-df_bronze.printSchema()
-# 3. טרנספורמציה וניקוי נתונים
-# מגבלת היסטוריה של 24 חודשים
+
+# ==========================================
+# 4. DATA CLEANING & STANDARDIZATION
+# ==========================================
+# Applying 24-month data retention policy
+
 retention_limit = F.add_months(F.current_date(), -24)
 
 df_transformed = (df_bronze
     .dropDuplicates(["unique_key"])
-    
-    # המרת תאריך (TimestampType)
     .withColumn("created_date", F.to_timestamp("created_date", "yyyy-MM-dd'T'HH:mm:ss.000"))
     .filter(F.col("created_date") >= retention_limit)
-    
-    # ניקוי טקסטים וסטנדרטיזציה
     .withColumn("agency", F.trim(F.upper(F.col("agency"))))
     .withColumn("complaint_type", F.trim(F.upper(F.col("complaint_type"))))
     .withColumn("descriptor", F.trim(F.upper(F.col("descriptor"))))
@@ -117,24 +122,26 @@ df_transformed = (df_bronze
     .withColumn("borough", F.trim(F.upper(F.col("borough"))))
     .withColumn("street_name", F.trim(F.upper(F.col("street_name"))))
     .withColumn("incident_zip", F.trim(F.col("incident_zip")))
-    
-    # המרת קואורדינטות (DoubleType)
     .withColumn("latitude", F.col("latitude").cast("double"))
     .withColumn("longitude", F.col("longitude").cast("double"))
-    
-    # חילוץ שדות זמן (IntegerType ו-String לשם היום)
     .withColumn("year", F.year(F.col("created_date")).cast("int"))
     .withColumn("month", F.month(F.col("created_date")).cast("int"))
     .withColumn("hour", F.hour(F.col("created_date")).cast("int"))
     .withColumn("day_name", F.date_format(F.col("created_date"), "EEEE"))
 )
 
-# 4. בחירת עמודות סופית לפי הסדר המדויק בסכימה
-# המנגנון הזה לוקח את שמות השדות ישירות מה-silver_311_schema שהגדרת
+# ==========================================
+# 5. SCHEMA ALIGNMENT & DATA CONTRACT
+# ==========================================
+# Selecting columns based on the silver_311_schema definition
+
 schema_columns = [field.name for field in silver_311_schema]
 df_silver_final = df_transformed.select(*schema_columns)
 
-# 5. שמירה ל-Silver ב-MinIO
+# ==========================================
+# 6. WRITE TO SILVER LAYER (PARQUET)
+# ==========================================
+
 output_path = "s3a://spark/silver/311_complaints/"
 print(f"💾 Saving data to Silver layer (Partitioned by year/month): {output_path}")
 
@@ -143,5 +150,11 @@ print(f"💾 Saving data to Silver layer (Partitioned by year/month): {output_pa
     .partitionBy("year", "month")
     .parquet(output_path))
 
-print("✅ Silver processing complete. All columns match your schema.")
+# ==========================================
+# 7. FINAL VALIDATION & REPORTING
+# ==========================================
+print("\n" + "="*50)
+print("✅ SILVER PROCESSING COMPLETE")
+print(f"Target: {output_path}")
+print("="*50)
 df_silver_final.show(5, truncate=False)

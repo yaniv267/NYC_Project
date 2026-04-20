@@ -1,65 +1,12 @@
-# import requests
-# import json
-# import gc
-# from pyspark.sql import SparkSession
-# from pyspark.sql.functions import col, upper, trim
-# from nyc_schema import silver_violation_codes_schema
-# # אתחול Spark Session
-# spark = SparkSession.builder \
-#     .appName("ingest_parking_codes") \
-#     .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
-#     .config("spark.hadoop.fs.s3a.endpoint", "http://minio:9000") \
-#     .config("spark.hadoop.fs.s3a.access.key", "minioadmin") \
-#     .config("spark.hadoop.fs.s3a.secret.key", "minioadmin") \
-#     .config("spark.hadoop.fs.s3a.path.style.access", "true") \
-#     .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
-#     .getOrCreate()
 
-# # ה-API של קודי הדוחות
-# base_url = "https://data.cityofnewyork.us/resource/ncbg-6agr.json"
-# output_path = "s3a://spark/silver/reference/violation_codes/"
-
-# print(f"--- Downloading Parking Violation Codes ---")
-
-# try:
-#     response = requests.get(base_url, timeout=60)
-#     response.raise_for_status()
-#     data = response.json()
-
-# # המרה ל-DataFrame
-#     json_rdd = spark.sparkContext.parallelize([json.dumps(record) for record in data])
-#     df_raw = spark.read.json(json_rdd)
-    
-
-    
-#     # --- תיקון שמות העמודות לפי ה-SODA API ---
-#     df_final = df_raw.select(
-#             col("code").alias("violation_code"), # המזהה של הדוח
-#             upper(trim(col("definition"))).alias("violation_descr"), # התיאור
-#             col("manhattan_96th_st_below").cast("double"), # קנס באזור יקר
-#             col("all_other_areas").cast("double") # קנס בשאר העיר
-#         )
-
-# # תצוגה לבדיקה - כאן תראה את הטקסטים והמחירים
-#     print("DEBUG: Parking Codes Map:")
-#     df_final.show(10, truncate=False)
-    
-
-#     df_final.write.mode("overwrite").parquet(output_path)
-    
-#     print(f"✅ Successfully saved parking codes to: {output_path}")
-
-# except Exception as e:
-#     print(f"❌ Error: {e}")
-
-# finally:
-#     spark.stop()
-    
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, upper, trim
+from pyspark.sql.functions import col, upper, trim,lit
 from nyc_schema import silver_violation_codes_schema
 
-# אתחול Spark Session
+# =========================
+# 2. INITIALIZE SPARK SESSION
+# =========================
+
 spark = SparkSession.builder \
     .appName("process_parking_codes_silver") \
     .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262") \
@@ -70,19 +17,41 @@ spark = SparkSession.builder \
     .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
     .getOrCreate()
 
-# 1. קריאה מה-Bronze (JSON גולמי)
+# =========================
+# 3. READ FROM BRONZE (RAW JSON)
+# =========================
 df_raw = spark.read.json("s3a://spark/bronze/violation_codes.json")
 
-# 2. עיבוד והתאמה לסכימה (שינוי שמות וסוגי נתונים)
-df_silver = df_raw.select(
+# =========================
+# 4. DATA TRANSFORMATION & CLEANING
+# =========================
+
+df_cleaned = df_raw.select(
     col("code").cast("string").alias("violation_code"), 
     upper(trim(col("definition"))).alias("violation_description"),
     col("manhattan_96th_st_below").cast("double"),
     col("all_other_areas").cast("double")
 )
 
-# 3. שמירה לסילבר בפורמט Parquet
-# טיפ: השימוש ב-Parquet כבר שומר את הסכימה בתוך הקובץ
-df_silver.write.mode("overwrite").parquet("s3a://spark/silver/violation_codes/")
+# =========================
+# 5. APPLY SILVER DATA CONTRACT (SCHEMA ALIGNMENT)
+# =========================
+# Ensuring the DataFrame strictly follows the imported schema fields
+existing_columns = df_cleaned.columns
+final_selection = []
 
-print("✅ Successfully processed violation codes and saved to Silver.")
+for field in silver_violation_codes_schema:
+    if field.name in existing_columns:
+        final_selection.append(col(field.name))
+    else:
+        # If a field is missing in raw data, populate with Null casted to schema type
+        final_selection.append(lit(None).cast(field.dataType).alias(field.name))
+
+df_silver_final = df_cleaned.select(*final_selection)
+
+# =========================
+# 6. WRITE TO SILVER LAYER (PARQUET)
+# =========================
+df_silver_final.write.mode("overwrite").parquet("s3a://spark/silver/violation_codes/")
+
+print("✅ Successfully processed violation codes and saved to Silver layer.")

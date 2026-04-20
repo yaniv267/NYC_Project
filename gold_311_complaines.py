@@ -75,7 +75,11 @@ from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 from nyc_schema import gold_311_schema 
 
-# 1. אתחול Spark Session
+
+# =========================
+# 2. INITIALIZE SPARK SESSION
+# =========================
+
 spark = (SparkSession.builder 
     .appName("NYC_311_Gold_Analytics") 
     .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262,org.postgresql:postgresql:42.6.0") 
@@ -88,16 +92,17 @@ spark = (SparkSession.builder
 
 spark.sparkContext.setLogLevel("WARN")
 
-# 2. קריאה מהסילבר
+# =========================
+# 3. LOAD SILVER DATASETS
+# =========================
+
 print("📖 Reading 311 Silver data...")
 silver_df = spark.read.parquet("s3a://spark/silver/311_complaints/")
 
-# 3. חישוב שעת שיא (Peak Hour) לכל סוג תלונה בכל רובע
-# זה נתון מעולה לבוט: "מתי הכי כדאי להימנע מהאזור?"
+# ==========================================
+# 4. ANALYTICS: PEAK HOUR CALCULATION
+# ==========================================
 
-# -------------------------
-# 🔥 Peak Hour per street
-# -------------------------
 peak_hour_df = (
     silver_df
     .groupBy("borough", "complaint_type", "street_name", "hour")
@@ -117,7 +122,10 @@ peak_hour_df = (
         F.col("hour").alias("peak_hour")
     )
 )
-# 4. אגרגציה ראשית לפי רובע, סוג תלונה וזמן (לפי הסכימה)
+# ==========================================
+# 5. CORE AGGREGATION & METRICS
+# ==========================================
+
 print("📊 Aggregating complaints metrics...")
 
 gold_base = (
@@ -143,7 +151,10 @@ gold_base = (
     )
 )
 
-# 5. חיבור הנתונים, הוספת אינטנסיביות ואכיפת סכימה
+# ==========================================
+# 6. ENRICHMENT & SCHEMA ENFORCEMENT
+# ==========================================
+# Joining with peak hour data and assigning intensity labels
 
 final_gold_calculated = (
     gold_base
@@ -161,7 +172,7 @@ final_gold_calculated = (
     .withColumn("last_updated_at", F.current_timestamp())
 )
 
-# --- אכיפת סכימה סופית (The Data Contract) ---
+# --- Data Contract Alignment ---
 print("🛡️ Enforcing Gold Schema...")
 
 for f in gold_311_schema:
@@ -173,13 +184,14 @@ gold_final = final_gold_calculated.select(
 )
 
 
-# 6. שמירה (MinIO + Postgres)
+# ==========================================
+# 7. MULTI-TARGET EXPORT (S3 & POSTGRES)
+# ==========================================
 print("🚀 Exporting Gold to targets...")
-
-# שמירה ל-MinIO
+# Target 1: MinIO (Parquet)
 gold_final.write.mode("overwrite").parquet("s3a://spark/gold/311_complaints/")
 
-# שמירה ל-Postgres לשימוש הבוט
+# Target 2: PostgreSQL (For Telegram Bot and Web Consumption)
 jdbc_url = "jdbc:postgresql://postgres:5432/nyc_data"
 db_props = {"user": "postgres", "password": "postgres", "driver": "org.postgresql.Driver"}
 
@@ -190,7 +202,9 @@ try:
         mode="overwrite", 
         properties=db_props
     )
-    print("✅ Gold 311 Pipeline Completed Successfully!")
+    print("\n" + "="*50)
+    print("✅ GOLD 311 PIPELINE COMPLETED SUCCESSFULLY!")
+    print("="*50 + "\n")
 except Exception as e:
     print(f"❌ Postgres Export failed: {e}")
 

@@ -68,6 +68,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, split, min, max, year, month, hour, date_format, dayofmonth, to_date, when
 from nyc_schema import silver_traffic_schema
 
+
+# =========================
+# 2. INITIALIZE SPARK SESSION
+# =========================
+
 spark = (SparkSession.builder
          .appName("NYC_Traffic_Silver_Processing")
          .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.4,com.amazonaws:aws-java-sdk-bundle:1.12.262")
@@ -80,14 +85,19 @@ spark = (SparkSession.builder
          .getOrCreate())
 
 spark.sparkContext.setLogLevel("WARN")
+# =========================
+# 3. READ FROM BRONZE (RAW JSON)
+# =========================
 
 input_path = "s3a://spark/bronze/nyc_traffic/"
 df_bronze = spark.read.parquet(input_path)
+# =========================
+# 4. DATA TRANSFORMATION & CLEANING
+# =========================
 
 df_silver = (df_bronze
              .filter((col("status") != "-101") & (col("speed").cast("float") > 0))
              .dropDuplicates(["link_id", "data_as_of"])
-
              .withColumn("event_time", to_timestamp(col("data_as_of"), "yyyy-MM-dd'T'HH:mm:ss.000"))
              .withColumn("borough", col("borough"))
              .withColumn("year", year(col("event_time")))
@@ -97,19 +107,26 @@ df_silver = (df_bronze
              .withColumn("day_name", date_format(col("event_time"), "EEEE"))
              .withColumn("date_id", to_date(col("event_time")))
              .withColumn("is_weekend", when(col("day_name").isin("Saturday", "Sunday"), True).otherwise(False))
-
              .withColumn("speed", col("speed").cast("float"))
              .withColumn("travel_time", col("travel_time").cast("int"))
              .withColumn("first_coords", split(col("link_points"), " ")[0])
              .withColumn("latitude", split(col("first_coords"), ",")[0].cast("double"))
              .withColumn("longitude", split(col("first_coords"), ",")[1].cast("double"))
              )
+# =========================
+# 5. APPLY SILVER DATA CONTRACT (SCHEMA ALIGNMENT)
+# =========================
+# Ensuring the DataFrame strictly follows the imported schema fields
 
 final_columns = [field.name for field in silver_traffic_schema]
 df_silver_final = df_silver.select(*final_columns)
 
 print(f"📊 Total observations in Silver Layer: {df_silver_final.count()}")
 df_silver_final.select(min("event_time"), max("event_time")).show()
+
+# =========================
+# 6. WRITE TO SILVER LAYER (PARQUET)
+# =========================
 
 output_path = "s3a://spark/silver/nyc_traffic/"
 (df_silver_final.write

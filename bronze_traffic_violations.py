@@ -1,13 +1,19 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col,year,month,to_timestamp
-from nyc_schema import bronze_traffic_violations
+from pyspark.sql.functions import from_json, col ,year,month,to_timestamp
+from nyc_schema import bronze_parking_schema
 
-# --- CONFIGURATION ---
+# =========================
+# 1. CONFIGURATION & PATHS
+# =========================
+
 KAFKA_BOOTSTRAP_SERVERS = "course-kafka:9093"
 KAFKA_TOPIC = "nyc_traffic_violations_stream"
-MINIO_OUTPUT_PATH = "s3a://spark/bronze/nyc_traffic_violations/"
-CHECKPOINT_PATH = "s3a://spark/bronze/nyc_traffic_violations/_checkpoints/"
+MINIO_OUTPUT_PATH = "s3a://spark/bronze/nyc_parking_violation/"
+CHECKPOINT_PATH = "s3a://spark/bronze/nyc_parking_violation/_checkpoints/"
 
+# =========================
+# 2. INITIALIZE SPARK SESSION
+# =========================
 
 spark = SparkSession.builder \
 .appName("NYC Parking Bronze Ingestion") \
@@ -21,8 +27,13 @@ spark = SparkSession.builder \
 .config("spark.hadoop.fs.s3a.path.style.access", "true") \
 .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
 .getOrCreate()
-  
+
+
 spark.sparkContext.setLogLevel("WARN")
+
+# =========================
+# 3. READ STREAM FROM KAFKA
+# =========================
 
 df_raw = spark.readStream \
     .format("kafka") \
@@ -32,19 +43,28 @@ df_raw = spark.readStream \
     .option("failOnDataLoss", "false") \
     .load()
 
-
+# =========================
+# 4. PARSE JSON DATA & SCHEMA
+# =========================
 
 df_json = df_raw.selectExpr("CAST(value AS STRING) as json_str")
 
 df_parsed = df_json.select(
-    from_json(col("json_str"), bronze_traffic_violations).alias("data")
+    from_json(col("json_str"), bronze_parking_schema).alias("data")
 ).select("data.*")
+
+# =========================
+# 5. DATA TRANSFORMATIONS
+# =========================
 
 df_final=df_parsed\
          .withColumn("issue_timestamp", to_timestamp(col("issue_date"))) \
          .withColumn("year", year(col("issue_timestamp"))) \
          .withColumn("month", month(col("issue_timestamp")))
-
+         
+# =========================
+# 6. WRITE STREAM TO MINIO (BRONZE)
+# =========================         
 
 query = df_final.writeStream \
     .format("parquet") \
@@ -57,3 +77,5 @@ query = df_final.writeStream \
 print("✅ Data successfully ingested into MinIO Bronze layer")
 
 query.awaitTermination()
+
+
