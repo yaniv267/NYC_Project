@@ -1,6 +1,50 @@
+#from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType
+from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType,BooleanType
 
-from pyspark.sql.types import StructType, StructField, StringType, IntegerType,TimestampType , DoubleType,DateType, LongType,ArrayType, FloatType
 
+bronze_address_schema=StructType([
+    StructField("the_geom", StringType(), True),                  # קואורדינטות בפורמט POINT (WKT)
+    StructField("BIN", IntegerType(), True),                      # Building Identification Number (מזהה בניין ייחודי בעירייה)
+    StructField("ZIPCODE", IntegerType(), True),                  # מיקוד
+    StructField("PRE_TYPE", StringType(), True),                  # קידומת סוג (נדיר)
+    StructField("POST_TYPE", StringType(), True),                 # סיומת סוג (כמו ST, AVE, BLVD)
+    StructField("OBJECTID", IntegerType(), True),                 # מזהה אובייקט במערכת ה-GIS
+    StructField("Address Point ID", IntegerType(), True),         # מזהה הכתובת הייחודי (Primary Key)
+    StructField("Complex ID", IntegerType(), True),               # מזהה למתחמים גדולים (כמו קמפוסים)
+    StructField("House Number", StringType(), True),              # מספר הבית (מחרוזת כי יש מספרים כמו 10A)
+    StructField("House Number Suffix", StringType(), True),       # סיומת למספר בית (כמו 1/2)
+    StructField("Hyphen Type", StringType(), True),               # סוג מקף במספר הבית (למשל בקווינס)
+    StructField("SOS Indicator", IntegerType(), True),            # אינדיקטור פנימי של העירייה
+    StructField("Special Condition", StringType(), True),         # תנאים מיוחדים (כמו כתובת וירטואלית)
+    StructField("Address Source", IntegerType(), True),           # מקור הכתובת
+    StructField("Address Status", IntegerType(), True),           # סטטוס (פעיל, היסטורי וכו')
+    StructField("Validation", IntegerType(), True),               # רמת אימות הכתובת
+    StructField("Borough Code", IntegerType(), True),             # קוד הרובע (1=מנהטן, 2=ברונקס, 3=ברוקלין, 4=קווינס, 5=סטטן איילנד)
+    StructField("Collection Method", StringType(), True),         # איך הכתובת נאספה (GPS, ידני וכו')
+    StructField("CREATED_DATE", StringType(), True),              # תאריך יצירת הרשומה
+    StructField("MODIFIED_DATE", StringType(), True),             # תאריך עדכון אחרון
+    StructField("B7SC_ACTUAL", IntegerType(), True),              # קוד רחוב רשמי (Department of City Planning)
+    StructField("B7SC_VANITY", IntegerType(), True),              # קוד רחוב חלופי/מיוחד
+    StructField("A4ID", IntegerType(), True),                     # מזהה פנימי נוסף
+    StructField("Street Name", StringType(), True),               # שם הרחוב (ללא סיומת)
+    StructField("House Number Range", StringType(), True),        # טווח מספרי בתים
+    StructField("House Number Range Suffix", StringType(), True), # סיומת לטווח
+    StructField("Pre-Modifier", StringType(), True),              # משנה קידומת (כמו UPPER, LOWER)
+    StructField("Pre-Directional", StringType(), True),           # כיוון בקידומת (N, S, E, W)
+    StructField("Post Directional", StringType(), True),          # כיוון בסיומת
+    StructField("Post Modifier", StringType(), True),             # משנה סיומת
+    StructField("Full Street Name", StringType(), True)           # השם המלא של הרחוב (העמודה שבה אנחנו משתמשים)
+])
+
+
+silver_address_schema = StructType([
+    StructField("address_id", StringType(), True),
+    StructField("street_name", StringType(), True),
+    StructField("zip_code", StringType(), True),
+    StructField("borough_code", StringType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("latitude", DoubleType(), True)
+])
 
 bronze_parking_schema = StructType([
     StructField("summons_number", StringType(), True),
@@ -24,39 +68,51 @@ bronze_parking_schema = StructType([
     StructField("fiscal_year", IntegerType(), True)
 ])
 
+
 silver_parking_schema = StructType([
-    StructField("summons_number", LongType(), True),       # מספר דוח - כעת כמספר ארוך
-    StructField("plate_id", StringType(), True),           # לוחית רישוי
-    StructField("registration_state", StringType(), True), # מדינה (NY, NJ וכו')
-    StructField("issue_date", DateType(), True),           # תאריך - כעת כטיפוס Date אמיתי
-    StructField("violation_code", IntegerType(), True),    # קוד עבירה - כמספר שלם
-    StructField("violation_description", StringType(), True), # תיאור (קריטי למצלמות)
-    StructField("vehicle_body_type", StringType(), True),  # סוג רכב
-    StructField("vehicle_make", StringType(), True),       # יצרן רכב
-    StructField("street_name", StringType(), True),        # שם הרחוב (קריטי לבוט)
-    StructField("house_number", StringType(), True),       # מספר בית
-    StructField("violation_county", StringType(), True),   # מחוז (NY, BX, QN וכו')
-    StructField("violation_time", StringType(), True)      # זמן העבירה
+    StructField("summons_number", LongType(), True),
+    StructField("plate_id", StringType(), True),
+    StructField("registration_state", StringType(), True),
+    StructField("issue_timestamp", TimestampType(), True),
+    StructField("issue_date", DateType(), True),
+    StructField("violation_code", IntegerType(), True),
+    StructField("violation_description", StringType(), True),
+    StructField("vehicle_body_type", StringType(), True),
+    StructField("vehicle_make", StringType(), True),
+    StructField("street_name", StringType(), True),
+    StructField("house_number", StringType(), True),
+    StructField("violation_county", StringType(), True),
+    StructField("violation_time", StringType(), True),
+    StructField("hour", IntegerType(), True),
+    StructField("day_of_week", StringType(), True),
+    StructField("year", IntegerType(), True),
+    StructField("month", IntegerType(), True),
+    StructField("borough_code", StringType(), True)
 ])
 
+
 gold_parking_violation_schema = StructType([
-    # מפתח העיר: רחוב וקוד עבירה
-    StructField("street_name", StringType(), False),
-    StructField("violation_code", IntegerType(), False),
-    
-    # תיאור מילולי (מהמילון שיצרנו ב-Silver Reference)
-    StructField("violation_description", StringType(), True),
-    
-    # כמות הדוחות שחולקו באותו רחוב/עבירה
-    StructField("tickets_count", LongType(), False),
-    
-    # נתונים גיאוגרפיים (דיוק כפול עבור מפות)
-    StructField("latitude", DoubleType(), True),
-    StructField("longitude", DoubleType(), True),
-    
-    # חותמת זמן לעדכון אחרון
-    StructField("last_updated", TimestampType(), True)
+    StructField("street_name", StringType(), True),
+    StructField("violation_code", IntegerType(), True),
+    StructField("violation_desc", StringType(), True),
+    StructField("tickets_count", LongType(), True),
+    StructField("start_date", DateType(), True),
+    StructField("end_date", DateType(), True),
+    StructField("issue_date", DateType(), True),
+    StructField("issue_day_name", StringType(), True),
+    StructField("lat", DoubleType(), True),
+    StructField("lon", DoubleType(), True),
+    StructField("category", StringType(), True),
+    StructField("risk_level", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("last_updated", TimestampType(), True),
+    StructField("hour", IntegerType(), True),
+    StructField("last_violation_ts", TimestampType(), True),
+    StructField("is_camera", StringType(), True), # שדה חדש עבור הבוט
+    StructField("time_of_day", StringType(), True),
+    StructField("total_fines", DoubleType(), True)
 ])
+
 
 gold_camera_violation_schema = StructType([
     StructField("street_name", StringType(), False),
@@ -70,7 +126,7 @@ gold_camera_violation_schema = StructType([
 
 silver_address_schema = StructType([
     StructField("address_id", StringType(), True),
-    StructField("full_address", StringType(), True),
+    StructField("street_name", StringType(), True),
     StructField("zip_code", StringType(), True),
     StructField("borough_code", StringType(), True),
     StructField("longitude", DoubleType(), True),
@@ -104,42 +160,16 @@ weather_silver_schema = StructType([
     StructField("snow", DoubleType(), True)
 ])
 
-traffic_bronze_schema = StructType([
-    StructField("id", StringType(), True),
-    StructField("speed", StringType(), True),
-    StructField("travel_time", StringType(), True),
-    StructField("status", StringType(), True),
-    StructField("data_as_of", StringType(), True),
-    StructField("link_id", StringType(), True),
-    StructField("link_points", StringType(), True),
-    StructField("encoded_poly_line", StringType(), True),
-    StructField("encoded_poly_line_lvls", StringType(), True),
-    StructField("owner", StringType(), True),
-    StructField("transcom_id", StringType(), True),
-    StructField("borough", StringType(), True),
-    StructField("link_name", StringType(), True),
-    StructField("ingested_at", StringType(), True)
-])
 
-traffic_silver_schema = StructType([
-    StructField("id", StringType(), True),
-    StructField("speed", FloatType(), True),           # הפך למספר עשרוני
-    StructField("travel_time", IntegerType(), True),   # הפך למספר שלם
-    StructField("status", StringType(), True),
-    StructField("event_time", TimestampType(), True),  # זמן האירוע המקורי (נקי)
-    StructField("link_id", StringType(), True),
-    StructField("borough", StringType(), True),
-    StructField("link_name", StringType(), True),
-    StructField("latitude", DoubleType(), True),       # חולץ החוצה
-    StructField("longitude", DoubleType(), True),      # חולץ החוצה
-    StructField("ingestion_time", TimestampType(), True) # מתי נכנס למערכת שלנו
-])
+
+
 
 location_schema = StructType([
     StructField("latitude", StringType(), True),
     StructField("longitude", StringType(), True),
     StructField("human_address", StringType(), True)
 ])
+
 
 bronze_crashes_schema = StructType([
     StructField("crash_date", StringType(), True),
@@ -169,12 +199,14 @@ bronze_crashes_schema = StructType([
 
 silver_crashes_schema = StructType([
     StructField("collision_id", StringType(), True),
-    StructField("crash_timestamp", TimestampType(), True), # איחוד של תאריך ושעה
+    StructField("crash_timestamp", TimestampType(), True),
     StructField("year", IntegerType(), True),
     StructField("month", IntegerType(), True),
+    StructField("day_of_week", StringType(), True),
     StructField("latitude", DoubleType(), True),
     StructField("longitude", DoubleType(), True),
     StructField("on_street_name", StringType(), True),
+    StructField("borough", StringType(), True),
     StructField("total_injured", IntegerType(), True),
     StructField("total_killed", IntegerType(), True),
     StructField("pedestrians_injured", IntegerType(), True),
@@ -182,21 +214,86 @@ silver_crashes_schema = StructType([
     StructField("motorist_injured", IntegerType(), True),
     StructField("contributing_factor", StringType(), True),
     StructField("vehicle_type", StringType(), True),
-    StructField("ingestion_time", TimestampType(), True),
-    StructField("borough", StringType(), True)
+    StructField("ingestion_time", TimestampType(), True)
 ])
+
 
 gold_crashes_schema = StructType([
     StructField("street_name", StringType(), True),
     StructField("borough", StringType(), True),
-    StructField("total_crashes", LongType(), True),   # Count תמיד מחזיר Long
-    StructField("total_injured", LongType(), True),   # Sum על Integer מחזיר לרוב Long
-    StructField("total_killed", LongType(), True),    # כנ"ל
+    StructField("total_crashes", LongType(), True),
+    StructField("total_injured", LongType(), True),
+    StructField("total_killed", LongType(), True),
     StructField("main_cause", StringType(), True),
-    StructField("crash_pct", DoubleType(), True),     # ביצעת Cast ל-Double
-    StructField("danger_rank", IntegerType(), True),  # Rank מחזיר Integer
-    StructField("safety_label", StringType(), True),
-    StructField("last_updated", TimestampType(), True),
     StructField("latitude", DoubleType(), True),
-    StructField("longitude", DoubleType(), True)
+    StructField("longitude", DoubleType(), True),
+    StructField("crash_pct", DoubleType(), True),
+    StructField("danger_rank", IntegerType(), True),
+    StructField("safety_label", StringType(), True),
+    StructField("first_crash_date", TimestampType(), True),
+    StructField("last_crash_date", TimestampType(), True),
+    StructField("unique_crash_days", LongType(), True),
+    StructField("sample_day_of_week", StringType(), True),
+    StructField("last_updated", TimestampType(), True)
+])
+
+
+bronze_traffic_schema = StructType([
+    StructField("id", StringType(), True),
+    StructField("speed", StringType(), True),
+    StructField("travel_time", StringType(), True),
+    StructField("status", StringType(), True),
+    StructField("data_as_of", StringType(), True),
+    StructField("link_id", StringType(), True),
+    StructField("link_points", StringType(), True),
+    StructField("encoded_poly_line", StringType(), True),
+    StructField("encoded_poly_line_lvls", StringType(), True),
+    StructField("owner", StringType(), True),
+    StructField("transcom_id", StringType(), True),
+    StructField("borough", StringType(), True),
+    StructField("link_name", StringType(), True),
+    StructField("ingested_at", StringType(), True)
+])
+silver_traffic_schema = StructType([
+    StructField("link_id", StringType(), False),
+    StructField("link_name", StringType(), True),
+    StructField("borough", StringType(), True), # <--- הוספנו
+    StructField("speed", FloatType(), True),
+    StructField("travel_time", IntegerType(), True),
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("event_time", TimestampType(), True),
+    StructField("day", IntegerType(), True),
+    StructField("hour", IntegerType(), True),
+    StructField("day_name", StringType(), True),
+    StructField("date_id", StringType(), True),
+    StructField("is_weekend", BooleanType(), True),
+    StructField("year", IntegerType(), True),
+    StructField("month", IntegerType(), True)
+])
+
+gold_traffic_realtime_schema = StructType([
+    StructField("link_id", StringType(), False),
+    StructField("street_name", StringType(), True),
+    StructField("borough", StringType(), True), # <--- קיים
+    StructField("latitude", DoubleType(), True),
+    StructField("longitude", DoubleType(), True),
+    StructField("current_speed", FloatType(), True),
+    StructField("travel_time", IntegerType(), True),
+    StructField("traffic_status", StringType(), True),
+    StructField("event_time", TimestampType(), True),
+    StructField("last_updated", TimestampType(), True)
+])
+
+gold_traffic_analytics_schema = StructType([
+    StructField("link_id", StringType(), False),
+    StructField("street_name", StringType(), True),
+    StructField("borough", StringType(), True), # <--- קיים
+    StructField("day_name", StringType(), True),
+    StructField("is_weekend", BooleanType(), True),
+    StructField("avg_speed_daily", FloatType(), True),
+    StructField("peak_congestion_hour", IntegerType(), True),
+    StructField("reliability_score", StringType(), True),
+    StructField("total_readings", IntegerType(), True),
+    StructField("last_updated", TimestampType(), True)
 ])
