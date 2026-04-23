@@ -2,7 +2,7 @@
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, current_timestamp, to_timestamp, year, month
-from nyc_schema import bronze_311_schema
+from Nyc_Project.src.common.nyc_schema import bronze_311_schema
 
 # =========================
 # 2. CONFIGURATION & PATHS

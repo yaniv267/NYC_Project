@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col ,year,month,to_timestamp
-from nyc_schema import bronze_parking_schema
+from Nyc_Project.src.common.nyc_schema import bronze_parking_schema
 
 # =========================
 # 1. CONFIGURATION & PATHS

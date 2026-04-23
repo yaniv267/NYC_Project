@@ -1,9 +1,6 @@
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, to_timestamp, concat, lit
-from nyc_schema import silver_crashes_schema # וודא שהסכימה כאן תואמת לעמודות הסופיות
-from pyspark.sql.functions import col, to_timestamp, concat, lit, date_format,month,year
-
+from pyspark.sql.functions import col, to_timestamp, concat, lit, date_format, month, year, current_date, add_months
+from Nyc_Project.src.common.nyc_schema import silver_crashes_schema 
 
 # =========================
 # 2. INITIALIZE SPARK SESSION
@@ -33,9 +30,11 @@ df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_crashes/")
 # 4. DATA CLEANING & TRANSFORMATION
 # =========================
 
+retention_limit = add_months(current_date(), -24)
+
 df_silver = (
     df_bronze
-    .dropDuplicates(["collision_id"])
+    # OPTIMIZATION 1: Filter BEFORE dropDuplicates to reduce the amount of data being shuffled
     .filter(col("latitude").isNotNull() & col("longitude").isNotNull())
 
     # --- Timestamp Standardization --
@@ -52,6 +51,12 @@ df_silver = (
     )
 )
 
+    # Apply 60-month retention filter
+    .filter(col("crash_timestamp") >= retention_limit)
+    
+    # Drop duplicates on the smaller, time-filtered dataset
+    .dropDuplicates(["collision_id"])
+
     # --- Time Features Extraction ---
     .withColumn("year", year(col("crash_timestamp")))
     .withColumn("month", month(col("crash_timestamp")))
@@ -63,6 +68,7 @@ df_silver = (
     .withColumn("pedestrians_injured", col("NUMBER_OF_PEDESTRIANS_INJURED").cast("int"))
     .withColumn("cyclist_injured", col("NUMBER_OF_CYCLIST_INJURED").cast("int"))
     .withColumn("motorist_injured", col("NUMBER_OF_MOTORIST_INJURED").cast("int"))
+    
     # --- Spatial Data & Attributes --
     .withColumn("latitude", col("latitude").cast("double"))
     .withColumn("longitude", col("longitude").cast("double"))
@@ -70,6 +76,7 @@ df_silver = (
     .withColumn("vehicle_type", col("VEHICLE_TYPE_CODE1"))
     .withColumn("ingestion_time", col("ingestion_timestamp"))
 )
+
 # =========================
 # 5. SCHEMA ALIGNMENT (DATA CONTRACT)
 # =========================
@@ -98,9 +105,14 @@ df_silver_processed = df_silver.select(
 # =========================
 output_path = "s3a://spark/silver/nyc_crashes/"
 
-df_silver_final = df_silver_processed.select(*[f.name for f in silver_crashes_schema])
-df_silver_final.show(50)
-df_silver_final.write \
+# OPTIMIZATION 2: Cache the DF so the show(), write(), and count() don't trigger the whole pipeline 3 times!
+df_silver_final = df_silver_processed.select(*[f.name for f in silver_crashes_schema]).cache()
+
+print("Previewing final Silver data:")
+df_silver_final.show(10) # Reduced to 10 for cleaner logs
+
+# OPTIMIZATION 3: coalesce(4) to prevent the "Small Files Problem" in partitioned directories
+df_silver_final.coalesce(4).write \
     .mode("overwrite") \
     .partitionBy("year", "month") \
     .parquet(output_path)
@@ -108,8 +120,9 @@ df_silver_final.write \
 # =========================
 # 7. FINAL EXECUTION REPORT
 # =========================
-# Professional logging summary
-final_count = df_silver_final.count()
+
+final_count = df_silver_final.count() 
+
 print("\n" + "="*50)
 print("📊 BATCH PROCESSING SUMMARY")
 print(f"Target Path: {output_path}")

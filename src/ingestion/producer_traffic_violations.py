@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 # --- CONFIGURATION ---
 API_ENDPOINT = "https://data.cityofnewyork.us/resource/pvqr-7yc4.json"
 APP_TOKEN = "gdLWTLhefvaSPLJI2AV4lTv4m"
-KAFKA_BROKER = "localhost:9092"
+KAFKA_BROKER = "course-kafka:9093"
 TOPIC_NAME = "nyc_traffic_violations_stream"
 
 LIMIT = 1000

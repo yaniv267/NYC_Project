@@ -67,7 +67,14 @@ services:
     ports:
       - "9200:9200"
     environment:
-      discovery.type: single-node
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"  # חובה! מונע קריסה מחוסר זיכרון
+    volumes:
+      - ./es_data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
 
   kibana:
     container_name: kibana
@@ -89,7 +96,7 @@ services:
           # השורה הזו אומרת לדוקר: "קח את הסקריפט שלי ותריץ אותו כשהדאטה-בייס עולה"
           - ./init.sql:/docker-entrypoint-initdb.d/init.sql
         ports:
-            - "5432:5432"
+            - "5433:5432"
 
 # --- זה החלק שחסר לך ---
 networks:
