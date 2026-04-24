@@ -83,7 +83,7 @@ output_path = "s3a://spark/silver/nyc_traffic/"
 
 print(f"✨ Silver layer for Traffic complete! Saved to: {output_path}")
 
-# --- כאן אתה מוסיף את החלק החדש: ---
+
 
 # --- Structured Logging: Dispatch Metrics to ELK ---
 final_count = df_silver_final.count()
