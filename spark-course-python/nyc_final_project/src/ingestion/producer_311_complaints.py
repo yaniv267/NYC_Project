@@ -60,19 +60,19 @@ def fetch_and_produce():
 if __name__ == "__main__":
     print("🚀 Starting continuous Kafka Producer for NYC 311 Complaints...")
     
-    while True:
-        try:
+#while True:
+    try:
             fetch_and_produce()
             
             # מגדירים זמן המתנה בין משיכה למשיכה (למשל 300 שניות = 5 דקות)
-            wait_time = 300 
-            print(f"⏳ Sleeping for {wait_time} seconds before the next fetch...\n")
-            time.sleep(wait_time)
+            #wait_time = 300 
+            #print(f"⏳ Sleeping for {wait_time} seconds before the next fetch...\n")
+            #time.sleep(wait_time)
             
-        except KeyboardInterrupt:
+    except KeyboardInterrupt:
             print("\n🛑 Producer stopped manually by user.")
-            break
-        except Exception as e:
+            #break
+    except Exception as e:
             print(f"❌ An error occurred: {e}")
             print("⏳ Retrying in 60 seconds...")
             time.sleep(60)

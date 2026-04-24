@@ -1,6 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col ,year,month,to_timestamp
-from Nyc_Project.src.common.nyc_schema import bronze_parking_schema
+#from Nyc_Project.src.common.nyc_schema import bronze_parking_schema
+#from nyc_final_project.src.common.nyc_schema import bronze_parking_schema
+from src.common.nyc_schema import bronze_parking_schema
 
 # =========================
 # 1. CONFIGURATION & PATHS
@@ -72,6 +74,7 @@ query = df_final.writeStream \
     .option("checkpointLocation", CHECKPOINT_PATH) \
     .partitionBy("year", "month") \
     .outputMode("append") \
+    .trigger(availableNow=True) \
     .start()
 
 print("✅ Data successfully ingested into MinIO Bronze layer")

@@ -1,7 +1,9 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, DoubleType
-from Nyc_Project.src.common.nyc_schema import silver_311_schema
+#from Nyc_Project.src.common.nyc_schema import silver_311_schema
+from src.common.nyc_schema import silver_311_schema
+
 
 # =========================
 # 2. INITIALIZE SPARK SESSION

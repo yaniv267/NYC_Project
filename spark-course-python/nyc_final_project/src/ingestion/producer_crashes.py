@@ -20,8 +20,8 @@ print(f"🚀 Crash Maintenance Producer is LIVE. Monitoring NYC for new accident
 # =========================
 # 3. CONTINUOUS INGESTION LOOP
 # =========================
-while True:
-    try:
+#while True:
+try:
         # Step A: Define Lookback Window (60 days) - השינוי השני כאן
         start_date = (datetime.now(timezone.utc) - timedelta(days=60)).strftime('%Y-%m-%d')
 
@@ -70,11 +70,11 @@ while True:
 
         print(f"✅ [{datetime.now().strftime('%H:%M:%S')}] Cycle complete. Total sent: {total_in_cycle}")
 
-    except Exception as e:
+except Exception as e:
         print(f"❌ Error during sync: {e}")
 
     # =========================
     # 4. SLEEP INTERVAL
     # =========================
-    print("😴 Sleeping for 1 hour until next maintenance check...")
-    time.sleep(3600)
+    #print("😴 Sleeping for 1 hour until next maintenance check...")
+    #time.sleep(3600)

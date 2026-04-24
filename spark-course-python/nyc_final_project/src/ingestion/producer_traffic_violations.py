@@ -38,7 +38,7 @@ except Exception as e:
 # ==========================================
 # 2. DATE RANGE (90 Days backwards from the API's reality)
 # ==========================================
-start_date = (latest_api_date - timedelta(days=90)).strftime("%Y-%m-%d")
+start_date = (latest_api_date - timedelta(days=30)).strftime("%Y-%m-%d")
 end_date_str = latest_api_date.strftime("%Y-%m-%d")
 
 # --- KAFKA PRODUCER SETUP ---
@@ -103,3 +103,5 @@ def fetch_and_send_all():
 
 if __name__ == "__main__":
     fetch_and_send_all()
+
+    

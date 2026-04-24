@@ -2,7 +2,8 @@
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, current_timestamp, to_timestamp, year, month
-from Nyc_Project.src.common.nyc_schema import bronze_311_schema
+#from Nyc_Project.src.common.nyc_schema import bronze_311_schema
+from src.common.nyc_schema import bronze_311_schema
 
 # =========================
 # 2. CONFIGURATION & PATHS
@@ -65,7 +66,8 @@ query = (df_parsed.writeStream
     .option("checkpointLocation", CHECKPOINT_PATH)
     .partitionBy("ingest_year", "ingest_month")
     .outputMode("append")
-    .trigger(processingTime='1 minute')
+    .trigger(availableNow=True) 
+
     .start())
 # ==========================================
 # 7. LOGGING & STREAM SYNCHRONIZATION

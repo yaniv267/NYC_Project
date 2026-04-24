@@ -1,7 +1,10 @@
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, current_timestamp, to_timestamp, year, month
-from Nyc_Project.src.common.nyc_schema import bronze_traffic_schema
+#from Nyc_Project.src.common.nyc_schema import bronze_traffic_schema
+from src.common.nyc_schema import bronze_traffic_schema
+
+
 
 
 # =========================
@@ -62,7 +65,9 @@ query = (df_parsed.writeStream
     .option("checkpointLocation", CHECKPOINT_PATH)
     .partitionBy("ingest_year", "ingest_month")
     .outputMode("append")
-    .trigger(processingTime='1 minute')
+    #.trigger(processingTime='1 minute')
+    .trigger(availableNow=True)
+
     .start())
 
 print(f"🚀 Traffic Speed Ingestion started!")

@@ -86,15 +86,16 @@ def run_smart_producer():
 
     # --- STEP 3: CONTINUOUS STREAMING MODE ---
     print(f"🔄 Step 3: Entering continuous update mode (Every 5 mins)...")
-    while True:
-        try:
-            params = {"$limit": 2000, "$order": "data_as_of DESC"}
+    #while True:
+    try:
+            params = {"$limit": 10000, "$order": "data_as_of DESC"}
             res = requests.get(BASE_URL, headers=headers, params=params, timeout=30)
             send_to_kafka(res.json(), "REAL-TIME UPDATE")
 
-            print(f"😴 Sleeping for 5 minutes...")
-            time.sleep(300)
-        except Exception as e:
+            print(f"end successfuly...")
+            #print(f"😴 Sleeping for 5 minutes...")
+            #time.sleep(300)
+    except Exception as e:
             print(f"❌ Real-time error: {e}")
             time.sleep(10)
 

@@ -1,6 +1,9 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, split, min, max, year, month, hour, date_format, dayofmonth, to_date, when, current_date, add_months
-from Nyc_Project.src.common.nyc_schema import silver_traffic_schema
+#from Nyc_Project.src.common.nyc_schema import silver_traffic_schema
+from src.common.nyc_schema import silver_traffic_schema
+
+
 
 # =========================
 # 2. INITIALIZE SPARK SESSION

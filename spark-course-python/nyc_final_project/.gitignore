@@ -1,3 +1,21 @@
-.venv/
+# Python
 __pycache__/
-*.parquet
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Airflow
+logs/
+*.db
+*.pid
+
+# Data & Checkpoints (Don't upload raw data or large files)
+data/
+_checkpoints/
+.ipynb_checkpoints/
+
+# Environments & Secrets
+.env
+.idea/
+.vscode/

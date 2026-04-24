@@ -1,6 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, upper, to_date, trim, lit, year, month, add_months, current_date, date_format, to_timestamp, when, regexp_extract
-from Nyc_Project.src.common.nyc_schema import silver_parking_violations
+#from Nyc_Project.src.common.nyc_schema import silver_parking_violations
+from src.common.nyc_schema import silver_parking_violations
+
 
 
 # =========================

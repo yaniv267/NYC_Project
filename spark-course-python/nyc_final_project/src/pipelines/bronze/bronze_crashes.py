@@ -1,6 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, to_date, year, month, current_timestamp
-from Nyc_Project.src.common.nyc_schema import bronze_crashes_schema
+#from Nyc_Project.src.common.nyc_schema import bronze_crashes_schema
+from src.common.nyc_schema import bronze_crashes_schema
+
 
 # =========================
 # 2. CONFIGURATION & PATHS
@@ -74,6 +76,7 @@ query = df_final.writeStream \
         .partitionBy("event_year", "event_month") \
         .outputMode("append") \
         .trigger(processingTime='1 minute') \
+        .trigger(availableNow=True) \
         .start()
 
 print(f"Ingestion started successfully!")
