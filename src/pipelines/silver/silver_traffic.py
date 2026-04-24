@@ -1,6 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, split, min, max, year, month, hour, date_format, dayofmonth, to_date, when, current_date, add_months
 from Nyc_Project.src.common.nyc_schema import silver_traffic_schema
+import json
+from Nyc_Project.src.common.elk_logger import log_to_elk
 
 # =========================
 # 2. INITIALIZE SPARK SESSION
@@ -25,7 +27,7 @@ spark.sparkContext.setLogLevel("WARN")
 
 input_path = "s3a://spark/bronze/nyc_traffic/"
 df_bronze = spark.read.parquet(input_path)
-
+bronze_count = df_bronze.count()
 # =========================
 # 4. DATA TRANSFORMATION & CLEANING
 # =========================
@@ -66,7 +68,7 @@ final_columns = [field.name for field in silver_traffic_schema]
 df_silver_final = df_silver.select(*final_columns).cache()
 
 print(f"📊 Total observations in Silver Layer: {df_silver_final.count()}")
-df_silver_final.select(min("event_time"), max("event_time")).show()
+
 
 # =========================
 # 6. WRITE TO SILVER LAYER (PARQUET)
@@ -78,6 +80,34 @@ output_path = "s3a://spark/silver/nyc_traffic/"
  .mode("overwrite")
  .partitionBy("year", "month", "day")
  .parquet(output_path))
+
+print(f"✨ Silver layer for Traffic complete! Saved to: {output_path}")
+
+# --- כאן אתה מוסיף את החלק החדש: ---
+
+# --- Structured Logging: Dispatch Metrics to ELK ---
+final_count = df_silver_final.count()
+dropped_records = bronze_count - final_count
+
+time_metrics = df_silver_final.select(
+    min("event_time").alias("min_t"), 
+    max("event_time").alias("max_t")
+).collect()[0]
+
+metrics_log = {
+    "action": "Silver_Processing_Complete",
+    "layer": "Silver",
+    "dataset": "NYC_Traffic",
+    "metrics": {
+        "bronze_records_read": bronze_count,
+        "silver_records_written": final_count,
+        "records_dropped": dropped_records,
+        "data_window_start": time_metrics["min_t"].isoformat() if time_metrics["min_t"] else None,
+        "data_window_end": time_metrics["max_t"].isoformat() if time_metrics["max_t"] else None
+    }
+}
+
+log_to_elk(json.dumps(metrics_log))
 
 print(f"✨ Silver layer for Traffic complete! Saved to: {output_path}")
 df_silver_final.show(5, truncate=False)

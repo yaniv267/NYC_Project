@@ -65,7 +65,7 @@ query = (df_parsed.writeStream
     .trigger(processingTime='1 minute')
     .start())
 
-print(f"🚀 Traffic Speed Ingestion started!")
-print(f"📡 Topic: {KAFKA_TOPIC}")
+print("✅ Data successfully ingested into MinIO Bronze layer")
+
 
 query.awaitTermination()

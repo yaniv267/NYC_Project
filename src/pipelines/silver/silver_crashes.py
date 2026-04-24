@@ -1,7 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, to_timestamp, concat, lit, date_format, month, year, current_date, add_months
 from Nyc_Project.src.common.nyc_schema import silver_crashes_schema 
-
+from Nyc_Project.src.common.elk_logger import log_to_elk
+import json
 # =========================
 # 2. INITIALIZE SPARK SESSION
 # =========================
@@ -25,7 +26,7 @@ spark.sparkContext.setLogLevel("WARN")
 # =========================
 
 df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_crashes/")
-
+bronze_count = df_bronze.count()
 # =========================
 # 4. DATA CLEANING & TRANSFORMATION
 # =========================
@@ -122,11 +123,26 @@ df_silver_final.coalesce(4).write \
 # =========================
 
 final_count = df_silver_final.count() 
-
+dropped_records = bronze_count - final_count
 print("\n" + "="*50)
-print("📊 BATCH PROCESSING SUMMARY")
 print(f"Target Path: {output_path}")
 print(f"Status: SUCCESS")
-print(f"Total Records Processed: {final_count:,}")
+print(f"Total Bronze Records: {bronze_count:,}")
+print(f"Total Records Processed (Silver): {final_count:,}")
+print(f"Total Records Dropped: {dropped_records:,}")
 print(f"Partitioning Strategy: Year / Month")
 print("="*50 + "\n")
+
+# Emit Execution Metrics to Logstash
+metrics_log = {
+    "action": "Silver_Processing_Complete",
+    "layer": "Silver",
+    "dataset": "NYC_Crashes",
+    "metrics": {
+        "bronze_records_read": bronze_count,
+        "silver_records_written": final_count,
+        "records_dropped": dropped_records
+    }
+}
+
+log_to_elk(json.dumps(metrics_log))

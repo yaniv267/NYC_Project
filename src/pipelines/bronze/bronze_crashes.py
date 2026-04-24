@@ -76,8 +76,9 @@ query = df_final.writeStream \
         .trigger(processingTime='1 minute') \
         .start()
 
-print(f"Ingestion started successfully!")
+print("✅ Data successfully ingested into MinIO Bronze layer")
 print(f"Writing to: {MINIO_OUTPUT_PATH}")
 print(f"Checkpoints at: {CHECKPOINT_PATH}")
 
 query.awaitTermination()
+

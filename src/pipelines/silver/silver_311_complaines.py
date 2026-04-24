@@ -3,6 +3,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, DoubleType
 from Nyc_Project.src.common.nyc_schema import silver_311_schema
 from Nyc_Project.src.common.elk_logger import log_to_elk
+import json
 # =========================
 # 2. INITIALIZE SPARK SESSION
 # =========================
@@ -29,7 +30,7 @@ log_to_elk("Silver Layer - Starting to clean 311 Complaints data.")
 
 print("📖 Reading 311 Bronze data...")
 df_bronze = spark.read.parquet("s3a://spark/bronze/311_complaints/")
-
+bronze_count = df_bronze.count()
 
 # ==========================================
 # 4. DATA CLEANING & STANDARDIZATION
@@ -91,15 +92,28 @@ print(f"💾 Saving data to Silver layer (Partitioned by year/month): {output_pa
 # ==========================================
 
 final_count = df_silver_final.count()
-
+dropped_records = bronze_count - final_count
 print("\n" + "="*50)
 print("✅ SILVER PROCESSING COMPLETE")
 print(f"Target: {output_path}")
+print(f"Total Bronze Records: {bronze_count:,}")
 print(f"Total Active Records Saved: {final_count:,}")
+print(f"Total Records Dropped: {dropped_records:,}")
 print("="*50)
 
-# ---LOGSTASH ---
-log_to_elk("Silver Layer - Cleaning finished successfully.")
+#  Emit Execution Metrics to Logstash
+metrics_log = {
+    "action": "Silver_Processing_Complete",
+    "layer": "Silver",
+    "dataset": "311_Complaints",
+    "metrics": {
+        "bronze_records_read": bronze_count,
+        "silver_records_written": final_count,
+        "records_dropped": dropped_records
+    }
+}
+
+log_to_elk(json.dumps(metrics_log))
 
 print("\nPreview of Processed Silver Data:")
 df_silver_final.show(5, truncate=False)

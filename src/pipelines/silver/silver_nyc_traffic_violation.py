@@ -1,7 +1,8 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, upper, to_date, trim, lit, year, month, add_months, current_date, date_format, to_timestamp, when, regexp_extract
 from Nyc_Project.src.common.nyc_schema import silver_parking_violations
-
+from Nyc_Project.src.common.elk_logger import log_to_elk
+import json
 
 # =========================
 # 1. INITIALIZE SPARK SESSION
@@ -32,7 +33,7 @@ spark.sparkContext.setLogLevel("WARN")
 # =========================
 
 df_bronze = spark.read.parquet("s3a://spark/bronze/nyc_parking_violation/")
-
+bronze_count = df_bronze.count()
 # =========================
 # 3. DATA CLEANING & HISTORY MANAGEMENT
 # =========================
@@ -107,8 +108,26 @@ df_silver_final.coalesce(4).write \
 
 # Enterprise-grade logging
 final_count = df_silver_final.count()
+dropped_records = bronze_count - final_count
+
 print("\n" + "="*50)
 print("✅ SILVER PARKING VIOLATIONS PROCESS COMPLETE")
 print(f"Target Path: {output_path}")
-print(f"Total Valid Records (Last 24 Months): {final_count:,}")
+print(f"Total Bronze Records: {bronze_count:,}")
+print(f"Total Valid Records Saved (Silver): {final_count:,}")
+print(f"Total Records Dropped: {dropped_records:,}")
 print("="*50 + "\n")
+
+#  Emit Execution Metrics to Logstash
+metrics_log = {
+    "action": "Silver_Processing_Complete",
+    "layer": "Silver",
+    "dataset": "NYC_Parking_Violations",
+    "metrics": {
+        "bronze_records_read": bronze_count,
+        "silver_records_written": final_count,
+        "records_dropped": dropped_records
+    }
+}
+
+log_to_elk(json.dumps(metrics_log))
