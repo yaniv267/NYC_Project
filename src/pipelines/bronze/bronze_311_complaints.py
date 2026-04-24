@@ -65,8 +65,11 @@ query = (df_parsed.writeStream
     .option("checkpointLocation", CHECKPOINT_PATH)
     .partitionBy("ingest_year", "ingest_month")
     .outputMode("append")
-    .trigger(processingTime='1 minute')
-    .start())
+    .trigger(availableNow=True) \
+    .start()
+    # .trigger(processingTime='1 minute')
+    # .start()
+)
 # ==========================================
 # 7. LOGGING & STREAM SYNCHRONIZATION
 # ==========================================
@@ -75,3 +78,4 @@ print(f"Listening to Kafka Topic: {KAFKA_TOPIC}")
 print(f"Writing Parquet to: {MINIO_OUTPUT_PATH}")
 
 query.awaitTermination()
+spark.stop()

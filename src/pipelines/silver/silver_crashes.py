@@ -21,6 +21,7 @@ spark = SparkSession.builder \
       
 spark.sparkContext.setLogLevel("WARN")
 
+log_to_elk("Silver Layer - Starting to clean crashes data.")
 # =========================
 # 3. READ RAW DATA FROM BRONZE
 # =========================

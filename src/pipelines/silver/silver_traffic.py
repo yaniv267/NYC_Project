@@ -21,6 +21,8 @@ spark = (SparkSession.builder
 
 spark.sparkContext.setLogLevel("WARN")
 
+log_to_elk("Silver Layer - Starting to clean traffic data.")
+
 # =========================
 # 3. READ FROM BRONZE (RAW JSON)
 # =========================
