@@ -1,0 +1,52 @@
+
+/home/developer/projects/spark-course-python/nyc_final_project/src/pipelines/bronze/bronze_traffic_violations.py
+    .trigger(availableNow=True) \
+
+
+nyc_final_project/src/ingestion/producer_crashes.py
+שינוי הללואה:
+
+שורה 22-23
+#while True:
+try:
+
+nyc_final_project/src/pipelines/bronze/bronze_crashes.py
+
+שורה 79
+        .trigger(availableNow=True) \
+
+
+nyc_final_project/src/ingestion/producer_traffic.py
+
+
+nyc_final_project/src/pipelines/bronze/bronze_traffic.py
+והורדת טריגר של דקה
+ - שורה 68    #.trigger(processingTime='1 minute')
+
+שורה 69
+    .trigger(availableNow=True)
+
+שורה 89     #while True:
+הזחות
+
+nyc_final_project/src/pipelines/bronze/bronze_311_complaints.py
+שורה 69 הוספה
+והורדת טריגר של דקה
+.trigger(availableNow=True) 
+
+
+
+
+nyc_final_project/src/ingestion/producer_311_complaints.py
+auru, 67-70 לככב
+            # מגדירים זמן המתנה בין משיכה למשיכה (למשל 300 שניות = 5 דקות)
+            #wait_time = 300 
+            #print(f"⏳ Sleeping for {wait_time} seconds before the next fetch...\n")
+            #time.sleep(wait_time)
+            
+			
+not relevant			
+export PYTHONPATH=/home/developer/projects/spark-course-python/nyc_final_project
+
+docker exec -u 0 airflow_scheduler pip install kafka-python requests
+
