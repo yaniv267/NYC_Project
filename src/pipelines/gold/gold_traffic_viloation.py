@@ -3,7 +3,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
 from pyspark.sql.window import Window
-from src.common.nyc_schema  import silver_violation_codes_schema
+from Nyc_Project.src.common.nyc_schema  import silver_violation_codes_schema
 
 os.environ["PYSPARK_SUBMIT_ARGS"] = "--driver-memory 4g --executor-memory 4g pyspark-shell"
 

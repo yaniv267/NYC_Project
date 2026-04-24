@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import IntegerType, DoubleType
 from Nyc_Project.src.common.nyc_schema import silver_311_schema
-
+from Nyc_Project.src.common.elk_logger import log_to_elk
 # =========================
 # 2. INITIALIZE SPARK SESSION
 # =========================
@@ -20,6 +20,8 @@ spark = (SparkSession.builder
     .getOrCreate())
 
 spark.sparkContext.setLogLevel("WARN")
+
+log_to_elk("Silver Layer - Starting to clean 311 Complaints data.")
 
 # =========================
 # 3. READ RAW DATA FROM BRONZE
@@ -96,5 +98,10 @@ print(f"Target: {output_path}")
 print(f"Total Active Records Saved: {final_count:,}")
 print("="*50)
 
+# ---LOGSTASH ---
+log_to_elk("Silver Layer - Cleaning finished successfully.")
+
 print("\nPreview of Processed Silver Data:")
 df_silver_final.show(5, truncate=False)
+
+

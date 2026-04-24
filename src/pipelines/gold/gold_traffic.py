@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
-from src.common.nyc_schema import gold_traffic_realtime_schema, gold_traffic_analytics_schema
+from Nyc_Project.src.common.nyc_schema import gold_traffic_realtime_schema, gold_traffic_analytics_schema
 
 # =========================
 # 2. INITIALIZE SPARK SESSION
