@@ -25,7 +25,8 @@ with DAG(
     dag_id='nyc_311_complaints_pipeline',
     default_args=default_args,
     description='End-to-end Medallion pipeline for NYC 311 Complaints data',
-    schedule_interval='@hourly',
+    schedule_interval=None,
+    # '@hourly',
     catchup=False,
     tags=['NYC', '311', 'Complaints', 'Lakehouse']
 ) as dag:

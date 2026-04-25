@@ -72,10 +72,12 @@ query = df_final.writeStream \
     .option("checkpointLocation", CHECKPOINT_PATH) \
     .partitionBy("year", "month") \
     .outputMode("append") \
+    .trigger(availableNow=True) \
     .start()
+    # .start()
 
 print("✅ Data successfully ingested into MinIO Bronze layer")
 
 query.awaitTermination()
-
+spark.stop()
 

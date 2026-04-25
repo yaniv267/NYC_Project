@@ -266,19 +266,19 @@ def process_street_search(message):
         
         # שלב 1: מציאת שילובים מדויקים מכל הטבלאות הרלוונטיות
         cur.execute(f"""
-            SELECT DISTINCT street_name, borough 
+            SELECT DISTINCT UPPER(street_name), UPPER(borough) 
             FROM gold_311_stats 
             WHERE ({where_clause}) AND borough IS NOT NULL AND borough != 'None' AND borough != ''
             UNION
-            SELECT DISTINCT street_name, borough 
+            SELECT DISTINCT UPPER(street_name), UPPER(borough) 
             FROM gold_traffic_violations 
             WHERE ({where_clause}) AND borough IS NOT NULL AND borough != 'None' AND borough != ''
             UNION
-            SELECT DISTINCT street_name, borough 
+            SELECT DISTINCT UPPER(street_name), UPPER(borough) 
             FROM gold_crash_stats 
             WHERE ({where_clause}) AND borough IS NOT NULL AND borough != 'None' AND borough != ''
             UNION
-            SELECT DISTINCT street_name, borough 
+            SELECT DISTINCT UPPER(street_name), UPPER(borough) 
             FROM gold_traffic_realtime 
             WHERE ({where_clause}) AND borough IS NOT NULL AND borough != 'None' AND borough != ''
             LIMIT 5
@@ -292,7 +292,7 @@ def process_street_search(message):
 
         for s_name, boro in street_combos:
             specific_params = [s_name, boro]
-            match_cond = "street_name = %s AND borough = %s"
+            match_cond = "UPPER(street_name) = %s AND UPPER(borough) = %s"
 
             # 1. שליפת תנועה
             cur.execute(f"SELECT current_speed, traffic_status, event_time, latitude, longitude FROM gold_traffic_realtime WHERE {match_cond} LIMIT 1", specific_params)

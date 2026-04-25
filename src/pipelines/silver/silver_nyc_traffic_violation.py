@@ -28,6 +28,8 @@ spark = SparkSession.builder \
 
 spark.sparkContext.setLogLevel("WARN")
 
+log_to_elk("Silver Layer - Starting to clean nyc_traffic_violation data.")
+
 # =========================
 # 2. READ FROM BRONZE LAYER
 # =========================

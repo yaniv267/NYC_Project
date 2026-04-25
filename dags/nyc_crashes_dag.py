@@ -40,7 +40,7 @@ with DAG(
     dag_id='nyc_vehicle_crashes_pipeline',
     default_args=default_args,
     description='End-to-end Medallion architecture for NYC Vehicle Crashes data',
-    schedule_interval='@hourly',
+    schedule_interval=None,
     catchup=False,
     tags=['NYC', 'Crashes', 'Lakehouse']
 ) as dag:

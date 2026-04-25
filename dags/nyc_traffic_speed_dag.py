@@ -85,7 +85,7 @@ with DAG(
     dag_id='nyc_traffic_speed_pipeline',
     default_args=default_args,
     description='End-to-end Medallion pipeline for NYC Traffic Speed data',
-    schedule_interval='@hourly',
+    schedule_interval=None,
     catchup=False,
     tags=['NYC', 'Traffic', 'Speed', 'Lakehouse']
 ) as dag:
