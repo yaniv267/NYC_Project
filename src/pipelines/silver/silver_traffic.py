@@ -83,6 +83,8 @@ output_path = "s3a://spark/silver/nyc_traffic/"
  .partitionBy("year", "month", "day")
  .parquet(output_path))
 
+
+
 print(f"✨ Silver layer for Traffic complete! Saved to: {output_path}")
 
 
@@ -113,3 +115,4 @@ log_to_elk(json.dumps(metrics_log))
 
 print(f"✨ Silver layer for Traffic complete! Saved to: {output_path}")
 df_silver_final.show(5, truncate=False)
+

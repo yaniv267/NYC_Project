@@ -53,7 +53,7 @@ df_cleaned = (
     .withColumn("issue_date", to_date(col("issue_timestamp")))
     
     # OPTIMIZATION 2: BUG FIX - Apply the retention limit filter that was missing
-    .filter(col("issue_date") >= retention_limit)
+    .filter((col("issue_date") >= retention_limit) & (col("issue_date") <= current_date()))
 
     # Now apply the heavy string manipulation only on the required subset
     .withColumn("borough_code", 
