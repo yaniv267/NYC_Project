@@ -67,8 +67,7 @@ query = (df_parsed.writeStream
     .outputMode("append")
     .trigger(availableNow=True) \
     .start()
-    # .trigger(processingTime='1 minute')
-    # .start()
+    
 )
 # ==========================================
 # 7. LOGGING & STREAM SYNCHRONIZATION

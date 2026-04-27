@@ -64,8 +64,7 @@ query = (df_parsed.writeStream
     .outputMode("append")
     .trigger(availableNow=True) \
     .start()
-    # .trigger(processingTime='1 minute')
-    # .start()
+   
     )
 
 print("✅ Data successfully ingested into MinIO Bronze layer")
